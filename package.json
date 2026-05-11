@@ -1,7 +1,7 @@
 {
-  "name": "slize-2d",
+  "name": "slize-dynast-clone",
   "version": "1.0.0",
-  "description": "Slize | 2D онлайн игра выживания",
+  "description": "Slize - онлайн игра как Dynast.io",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

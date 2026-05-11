@@ -8,224 +8,144 @@ const io = socketIo(server, { cors: { origin: "*" } });
 
 app.use(express.static(__dirname + '/'));
 
-const WORLD_W = 25;
-const WORLD_H = 15;
-
+// Игроки
 let players = {};
-let walls = [];
-let resources = [];
+let nextId = 1;
 
-// Генерация ресурсов (дерево, камень, изумруды)
-function generateResources() {
-    let arr = [];
-    for (let i = 0; i < 80; i++) {
-        let r = Math.random();
-        let type;
-        if (r < 0.6) type = 'wood';
-        else if (r < 0.85) type = 'stone';
-        else type = 'emerald';  // изумруды 15% шанс
-        
-        let x = Math.floor(Math.random() * WORLD_W);
-        let y = Math.floor(Math.random() * WORLD_H);
-        arr.push({ x, y, type });
-    }
-    return arr;
-}
+// Рецепты крафта
+const recipes = {
+    wooden_sword: { wood: 10, stone: 0, iron: 0, emerald: 0, fuel: 0, damage: 12, name: 'Деревянный меч' },
+    stone_axe: { wood: 0, stone: 8, iron: 0, emerald: 0, fuel: 0, damage: 15, name: 'Каменный топор' },
+    iron_pickaxe: { wood: 0, stone: 0, iron: 5, emerald: 0, fuel: 0, damage: 20, name: 'Железная кирка' },
+    chainsaw: { wood: 10, stone: 0, iron: 5, emerald: 0, fuel: 3, damage: 35, name: 'Бензопила' },
+    crossbow: { wood: 15, stone: 0, iron: 8, emerald: 0, fuel: 0, damage: 28, name: 'Арбалет' },
+    totem: { wood: 0, stone: 20, iron: 0, emerald: 5, fuel: 0, damage: 0, name: 'Тотем' },
+    furnace: { wood: 0, stone: 15, iron: 5, emerald: 0, fuel: 0, damage: 0, name: 'Печка' },
+    chest: { wood: 20, stone: 0, iron: 0, emerald: 0, fuel: 0, damage: 0, name: 'Сундук' }
+};
 
-// Проверка твёрдого объекта
-function isSolid(x, y, ignoreRes = false) {
-    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return true;
-    for (let w of walls) if (w.x === x && w.y === y) return true;
-    if (!ignoreRes) {
-        for (let r of resources) if (r.x === x && r.y === y) return true;
-    }
-    return false;
-}
-
-// Спавн без коллизий
-function getFreeSpawn() {
-    for (let tries = 0; tries < 300; tries++) {
-        let x = Math.floor(3 + Math.random() * (WORLD_W - 6));
-        let y = Math.floor(3 + Math.random() * (WORLD_H - 6));
-        if (!isSolid(x, y, true) && !Object.values(players).some(p => Math.floor(p.x) === x && Math.floor(p.y) === y)) {
-            return { x, y };
-        }
-    }
-    return { x: 5, y: 5 };
-}
-
-// Бафф силы
-function applyPowerBuff(socketId) {
-    if (players[socketId]) {
-        players[socketId].powerBuff = true;
-        setTimeout(() => {
-            if (players[socketId]) {
-                players[socketId].powerBuff = false;
-                io.emit('playerUpdate', {
-                    id: socketId,
-                    x: players[socketId].x,
-                    y: players[socketId].y,
-                    wood: players[socketId].wood,
-                    stone: players[socketId].stone,
-                    emerald: players[socketId].emerald,
-                    powerBuff: false
-                });
-            }
-        }, 30000);
-    }
+function getFreePos() {
+    return { x: (Math.random() - 0.5) * 40, z: (Math.random() - 0.5) * 40 };
 }
 
 io.on('connection', (socket) => {
-    console.log('👤 игрок зашёл', socket.id);
-    let spawn = getFreeSpawn();
-    players[socket.id] = {
-        id: socket.id,
+    const spawn = getFreePos();
+    const id = String(nextId++);
+    
+    players[id] = {
+        id: id,
         x: spawn.x,
-        y: spawn.y,
-        wood: 8,
-        stone: 4,
-        emerald: 2,
-        name: 'Слизер ' + Math.floor(Math.random() * 900),
-        powerBuff: false
+        z: spawn.z,
+        health: 100,
+        maxHealth: 100,
+        inventory: {
+            wood: 10,
+            stone: 5,
+            iron: 0,
+            emerald: 1,
+            fuel: 2
+        },
+        weapon: 'fist',
+        weaponDamage: 5
     };
     
+    console.log(`✅ Игрок ${id} подключился`);
+    
     socket.emit('init', {
-        id: socket.id,
-        players: players,
-        walls: walls,
-        resources: resources,
-        myWood: players[socket.id].wood,
-        myStone: players[socket.id].stone,
-        myEmerald: players[socket.id].emerald
+        id: id,
+        x: players[id].x,
+        z: players[id].z,
+        inventory: players[id].inventory,
+        health: players[id].health,
+        online: Object.keys(players).length
     });
     
-    // Движение и сбор ресурсов
-    socket.on('move', (data) => {
-        let p = players[socket.id];
-        if (!p) return;
-        let dx = 0, dy = 0;
-        if (data.up) dy -= 1;
-        if (data.down) dy += 1;
-        if (data.left) dx -= 1;
-        if (data.right) dx += 1;
-        if (dx === 0 && dy === 0) return;
+    io.emit('updatePlayers', players);
+    
+    // Движение
+    socket.on('move', (move) => {
+        if (!players[id]) return;
+        let speed = 5.5;
+        let newX = players[id].x + move.x * speed * 0.05;
+        let newZ = players[id].z + move.z * speed * 0.05;
+        newX = Math.min(38, Math.max(-38, newX));
+        newZ = Math.min(38, Math.max(-38, newZ));
+        players[id].x = newX;
+        players[id].z = newZ;
+        io.emit('updatePlayers', players);
+    });
+    
+    // Атака
+    socket.on('attack', (data) => {
+        if (!players[id]) return;
+        let attacker = players[id];
+        let damage = data.damage;
         
-        let newX = p.x + dx;
-        let newY = p.y + dy;
-        
-        if (!isSolid(newX, newY)) {
-            p.x = newX;
-            p.y = newY;
-            
-            // Сбор ресурса на клетке
-            let idx = resources.findIndex(r => r.x === p.x && r.y === p.y);
-            if (idx !== -1) {
-                let res = resources[idx];
-                if (res.type === 'wood') p.wood += 2;
-                else if (res.type === 'stone') p.stone += 1;
-                else if (res.type === 'emerald') p.emerald += 1;
-                resources.splice(idx, 1);
-                io.emit('updateResources', resources);
+        // Поиск ближайшего игрока для атаки
+        let closest = null;
+        let minDist = 2.5;
+        for (let pid in players) {
+            if (pid !== id) {
+                const p = players[pid];
+                const dist = Math.hypot(attacker.x - p.x, attacker.z - p.z);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = p;
+                }
             }
-            
-            io.emit('playerUpdate', {
-                id: socket.id,
-                x: p.x,
-                y: p.y,
-                wood: p.wood,
-                stone: p.stone,
-                emerald: p.emerald,
-                powerBuff: p.powerBuff
-            });
+        }
+        
+        if (closest) {
+            closest.health -= damage;
+            if (closest.health <= 0) {
+                closest.health = closest.maxHealth;
+                io.emit('death', { id: closest.id });
+                // Телепорт после смерти
+                const newSpawn = getFreePos();
+                closest.x = newSpawn.x;
+                closest.z = newSpawn.z;
+            }
+            io.emit('attackEffect', { target: closest.id, newHealth: closest.health, damage: damage });
             io.emit('updatePlayers', players);
         }
     });
     
-    // Постройка стены (обычная или изумрудная)
-    socket.on('placeWall', (wallX, wallY, wallType) => {
-        let p = players[socket.id];
-        if (!p) return;
+    // Крафт
+    socket.on('craft', (data) => {
+        if (!players[id]) return;
+        const recipe = recipes[data.recipe];
+        if (!recipe) return;
         
-        if (wallType === 'emerald' && p.emerald >= 5 && !isSolid(wallX, wallY, true)) {
-            p.emerald -= 5;
-            walls.push({ x: wallX, y: wallY, type: 'emerald', hp: 120 });
-            applyPowerBuff(socket.id);
-            io.emit('updateWalls', walls);
-        } else if (wallType === 'normal' && p.wood >= 10 && !isSolid(wallX, wallY, true)) {
-            p.wood -= 10;
-            walls.push({ x: wallX, y: wallY, type: 'normal', hp: 50 });
-            io.emit('updateWalls', walls);
-        } else {
-            return;
-        }
-        
-        io.emit('playerUpdate', {
-            id: socket.id,
-            x: p.x,
-            y: p.y,
-            wood: p.wood,
-            stone: p.stone,
-            emerald: p.emerald
-        });
-        io.emit('updatePlayers', players);
-    });
-    
-    // Телепорт (уникальная механика с изумрудами)
-    socket.on('teleport', (data) => {
-        let p = players[socket.id];
-        if (!p) return;
-        if (p.emerald >= 3) {
-            p.emerald -= 3;
-            let angle = Math.random() * Math.PI * 2;
-            let radius = 4 + Math.random() * 5;
-            let newX = Math.floor(p.x + Math.cos(angle) * radius);
-            let newY = Math.floor(p.y + Math.sin(angle) * radius);
-            newX = Math.min(WORLD_W - 1, Math.max(0, newX));
-            newY = Math.min(WORLD_H - 1, Math.max(0, newY));
+        const inv = players[id].inventory;
+        if (inv.wood >= (recipe.wood || 0) &&
+            inv.stone >= (recipe.stone || 0) &&
+            inv.iron >= (recipe.iron || 0) &&
+            inv.emerald >= (recipe.emerald || 0) &&
+            inv.fuel >= (recipe.fuel || 0)) {
             
-            if (!isSolid(newX, newY, true)) {
-                p.x = newX;
-                p.y = newY;
+            inv.wood -= recipe.wood || 0;
+            inv.stone -= recipe.stone || 0;
+            inv.iron -= recipe.iron || 0;
+            inv.emerald -= recipe.emerald || 0;
+            inv.fuel -= recipe.fuel || 0;
+            
+            if (recipe.damage > 0) {
+                players[id].weapon = recipe.name;
+                players[id].weaponDamage = recipe.damage;
             }
             
-            io.emit('playerUpdate', {
-                id: socket.id,
-                x: p.x,
-                y: p.y,
-                wood: p.wood,
-                stone: p.stone,
-                emerald: p.emerald
-            });
-            io.emit('teleportConfirm', { id: socket.id, newX: p.x, newY: p.y });
+            io.emit('playerUpdate', { id: id, inventory: inv, health: players[id].health });
             io.emit('updatePlayers', players);
         }
     });
     
     socket.on('disconnect', () => {
-        console.log('❌ игрок вышел', socket.id);
-        delete players[socket.id];
-        io.emit('playerLeft', socket.id);
+        delete players[id];
         io.emit('updatePlayers', players);
+        console.log(`❌ Игрок ${id} вышел`);
     });
 });
 
-// Респавн ресурсов
-setInterval(() => {
-    if (resources.length < 55) {
-        let typeRand = Math.random();
-        let type;
-        if (typeRand < 0.6) type = 'wood';
-        else if (typeRand < 0.85) type = 'stone';
-        else type = 'emerald';
-        
-        let x = Math.floor(Math.random() * WORLD_W);
-        let y = Math.floor(Math.random() * WORLD_H);
-        if (!isSolid(x, y, true)) {
-            resources.push({ x, y, type });
-            io.emit('updateResources', resources);
-        }
-    }
-}, 7000);
-
-resources = generateResources();
-server.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('✅ Slize сервер запущен'));
+server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+    console.log('⚔️ Slize 3D сервер запущен на порту 3000');
+});

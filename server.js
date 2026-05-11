@@ -1,63 +1,92 @@
-// ... (весь твой код до players = {})
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+
+app.use(express.static(__dirname));
+
+const WORLD_W = 200;
+const WORLD_H = 200;
+let players = {};
+let resources = [];
+let nextId = 1;
+
+function generateWorld() {
+    resources = [];
+    for (let i = 0; i < 2500; i++) {
+        const x = Math.floor(Math.random() * WORLD_W);
+        const y = Math.floor(Math.random() * WORLD_H);
+        const type = Math.random() > 0.6 ? 'tree' : 'stone';
+        resources.push({id: nextId++, x, y, type, hp: type==='stone'?60:35});
+    }
+}
 
 io.on('connection', (socket) => {
     let pId = null;
 
     socket.on('login', (data) => {
-        const spawn = getFreeSpawn();
         pId = String(nextId++);
-        
+        const spawnX = 80 + Math.random()*40;
+        const spawnY = 80 + Math.random()*40;
+
         players[pId] = {
             id: pId,
-            socketId: socket.id,
-            x: spawn.x,
-            y: spawn.y,
-            name: data.nickname || `Slayer${Math.floor(Math.random()*999)}`,
+            x: spawnX,
+            y: spawnY,
+            name: data.nickname || 'Player',
             hp: 100,
-            maxHp: 100,
             hunger: 100,
-            stamina: 100,        // ← НОВАЯ СТАМИНА
-            inventory: Array(20).fill(null),
-            equip: 'hand',
-            angle: 0,
-            isAttacking: false,
-            attackTimer: 0,
-            moveAnim: 0
+            stamina: 100,
+            angle: 0
         };
 
-        players[pId].inventory = addItem(players[pId].inventory, 'wood', 8);
-        socket.emit('init', { id: pId, worldW: WORLD_W, worldH: WORLD_H, recipes, x: spawn.x, y: spawn.y });
-        io.emit('onlineCount', Object.keys(players).length);
+        socket.emit('init', { id: pId });
+        console.log(`Игрок ${players[pId].name} подключился`);
     });
 
-    // ... остальной код без изменений
-
     socket.on('move', (data) => {
-        if (!pId || !players[pId]) return;
+        if (!players[pId]) return;
         const p = players[pId];
-        p.dx = data.dx; p.dy = data.dy;
-        p.angle = data.angle;
+        const speed = 0.17;
 
-        const speed = 0.16;
-        let newX = p.x + data.dx * speed;
-        let newY = p.y + data.dy * speed;
+        p.x += data.dx * speed;
+        p.y += data.dy * speed;
+        p.angle = data.angle || p.angle;
 
-        if (!isSolid(newX, p.y)) p.x = newX;
-        if (!isSolid(p.x, newY)) p.y = newY;
+        // Ограничение мира
+        p.x = Math.max(1, Math.min(WORLD_W-1, p.x));
+        p.y = Math.max(1, Math.min(WORLD_H-1, p.y));
+    });
 
-        if (data.dx !== 0 || data.dy !== 0) {
-            p.moveAnim += 0.35;
-            p.stamina = Math.max(10, p.stamina - 0.12); // трата стамины при беге
-        } else {
-            p.stamina = Math.min(100, p.stamina + 0.25); // восстановление
+    socket.on('attack', () => {
+        // Простая атака по ресурсам
+        if (!players[pId]) return;
+        const p = players[pId];
+        for (let i = resources.length-1; i >= 0; i--) {
+            const r = resources[i];
+            if (Math.hypot(p.x - r.x, p.y - r.y) < 2) {
+                r.hp -= 25;
+                if (r.hp <= 0) resources.splice(i,1);
+                break;
+            }
         }
     });
 
-    // В игровом цикле (setInterval 30fps)
-    // Добавь в цикл игроков:
-    for (let p of Object.values(players)) {
-        p.hunger = Math.max(0, p.hunger - 0.008);
-        p.stamina = Math.min(100, p.stamina + 0.18); // постоянное восстановление
-        if (p.hunger <= 0) p.hp = Math.max(0, p.hp - 0.08);
-        // ... остальное
-    }
+    socket.on('disconnect', () => {
+        if (pId) delete players[pId];
+    });
+});
+
+// Игровой цикл
+setInterval(() => {
+    io.emit('gameState', { players, resources });
+}, 1000/30);
+
+generateWorld();
+server.listen(3000, '0.0.0.0', () => {
+    console.log('🚀 Slize сервер запущен на http://localhost:3000');
+});

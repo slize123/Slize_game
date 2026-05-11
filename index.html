@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynast.io Light — бесплатно, без регистрации</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body {
+            background: #1a2a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+        }
+        #gameContainer {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 0 0 4px #6b4c3b, 0 10px 25px black;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+            background: #3c5e3a;
+        }
+        #ui {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.75);
+            padding: 8px 14px;
+            border-radius: 30px;
+            color: #ffd966;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 10;
+            font-size: 18px;
+            gap: 20px;
+            display: flex;
+        }
+        #inventory {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #2c1e12e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            backdrop-filter: blur(4px);
+            font-size: 16px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .craftPanel {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: #1f1b14e0;
+            backdrop-filter: blur(8px);
+            padding: 12px;
+            border-radius: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 20;
+            border: 1px solid #b87c4f;
+        }
+        .craftBtn {
+            background: #5a3e2e;
+            border: none;
+            color: #ffecb3;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 2px 0 #2d1e12;
+        }
+        .craftBtn:active { transform: translateY(2px); box-shadow: none; }
+        #status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: black;
+            color: #0f0;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        @media (max-width: 700px) { .craftBtn { padding: 4px 12px; font-size: 12px; } #ui { font-size: 14px; } }
+    </style>
+</head>
+<body>
+<div id="gameContainer">
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    <div id="inventory">🌲 Дерево: <span id="woodCount">0</span>  | 🪨 Камень: <span id="stoneCount">0</span></div>
+    <div id="ui">🏹 <span id="playersOnline">1</span> в игре | 🔨 [E] — поставить стену</div>
+    <div class="craftPanel">
+        <button class="craftBtn" id="craftWallBtn">🧱 Стена (10 дерева)</button>
+    </div>
+    <div id="status">🟢 соединение...</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const TILE_SIZE = 40;
+    const WORLD_W = 25;
+    const WORLD_H = 15;
+    
+    let myId = null;
+    let players = {};
+    let walls = [];
+    let resources = [];
+    let myWood = 0;
+    let myStone = 0;
+    
+    let socket = io();
+    
+    socket.on('connect', () => {
+        document.getElementById('status').innerHTML = '✅ в игре';
+    });
+    
+    socket.on('init', (data) => {
+        myId = data.id;
+        players = data.players;
+        walls = data.walls;
+        resources = data.resources;
+        myWood = data.myWood || 0;
+        myStone = data.myStone || 0;
+        updateUI();
+    });
+    
+    socket.on('updatePlayers', (newPlayers) => { players = newPlayers; });
+    socket.on('updateWalls', (newWalls) => { walls = newWalls; });
+    socket.on('updateResources', (newRes) => { resources = newRes; });
+    
+    socket.on('playerUpdate', (data) => {
+        if(data.id === myId) {
+            myWood = data.wood;
+            myStone = data.stone;
+            updateUI();
+        }
+        if(players[data.id]) {
+            players[data.id].x = data.x;
+            players[data.id].y = data.y;
+        }
+    });
+    
+    socket.on('playerLeft', (id) => { delete players[id]; });
+    
+    function updateUI() {
+        document.getElementById('woodCount').innerText = myWood;
+        document.getElementById('stoneCount').innerText = myStone;
+        document.getElementById('playersOnline').innerText = Object.keys(players).length;
+    }
+    
+    const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, s: false, a: false, d: false };
+    window.addEventListener('keydown', (e) => {
+        let k = e.key;
+        if(keys.hasOwnProperty(k)) keys[k] = true;
+        if(k === 'e' || k === 'E') {
+            e.preventDefault();
+            if(myWood >= 10) {
+                let player = players[myId];
+                if(player) {
+                    socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y));
+                }
+            } else {
+                document.getElementById('status').innerHTML = '⚠️ не хватает дерева (10)';
+                setTimeout(()=> { if(document.getElementById('status').innerHTML.includes('не хватает')) document.getElementById('status').innerHTML = '✅ в игре'; }, 800);
+            }
+        }
+    });
+    window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+    
+    function sendMovement() {
+        let move = { up: keys.ArrowUp||keys.w, down: keys.ArrowDown||keys.s, left: keys.ArrowLeft||keys.a, right: keys.ArrowRight||keys.d };
+        socket.emit('move', move);
+    }
+    setInterval(sendMovement, 50);
+    
+    document.getElementById('craftWallBtn').onclick = () => {
+        if(myWood >= 10) {
+            let player = players[myId];
+            if(player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y));
+        } else alert('нужно 10 дерева');
+    };
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for(let i=0; i<WORLD_W; i++) {
+            for(let j=0; j<WORLD_H; j++) {
+                ctx.fillStyle = (i+j)%2===0 ? '#42633b' : '#4a7442';
+                ctx.fillRect(i*TILE_SIZE, j*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+        }
+        for(let r of resources) {
+            ctx.fillStyle = r.type === 'wood' ? '#8B5A2B' : '#888';
+            ctx.fillRect(r.x*TILE_SIZE+5, r.y*TILE_SIZE+5, TILE_SIZE-10, TILE_SIZE-10);
+            ctx.fillStyle = r.type === 'wood' ? '#c97e3a' : '#aaa';
+            ctx.font = `${TILE_SIZE-12}px monospace`;
+            ctx.fillText(r.type === 'wood' ? '🪵' : '🪨', r.x*TILE_SIZE+10, r.y*TILE_SIZE+28);
+        }
+        for(let w of walls) {
+            ctx.fillStyle = '#624c37';
+            ctx.fillRect(w.x*TILE_SIZE, w.y*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1);
+            ctx.fillStyle = '#b87c4f';
+            ctx.fillRect(w.x*TILE_SIZE+5, w.y*TILE_SIZE+5, TILE_SIZE-10, TILE_SIZE-10);
+            ctx.fillStyle = '#f5bc70';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('🧱', w.x*TILE_SIZE+12, w.y*TILE_SIZE+28);
+        }
+        for(let id in players) {
+            let p = players[id];
+            let x = p.x * TILE_SIZE, y = p.y * TILE_SIZE;
+            ctx.fillStyle = id === myId ? '#fff7b0' : '#ffaa66';
+            ctx.beginPath();
+            ctx.arc(x+TILE_SIZE/2, y+TILE_SIZE/2, TILE_SIZE/2.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(id === myId ? '😎' : '👤', x+12, y+28);
+            ctx.fillStyle = 'white';
+            ctx.font = '10px monospace';
+            ctx.fillText(p.name || 'player', x+5, y-4);
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>

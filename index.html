@@ -1,460 +1,491 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Slize | Бесплатная онлайн игра</title>
+    <title>Slize 3D | Бесплатная онлайн игра выживания</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-
         body {
-            background: #0a1008;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+        }
+        
+        /* Меню входа */
+        #joinScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a1f0a, #0a0f0a);
+            z-index: 100;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            font-family: 'Segoe UI', 'Courier New', monospace;
-            overflow: hidden;
-        }
-
-        #gameContainer {
-            position: relative;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 0 0 4px #c9a03d, 0 20px 40px rgba(0,0,0,0.5);
-        }
-
-        canvas {
-            display: block;
-            cursor: crosshair;
-            background: #2c4a2a;
-        }
-
-        #inventory {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            background: #181c14e6;
             backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            border-radius: 48px;
-            display: flex;
-            gap: 24px;
-            font-weight: bold;
-            font-size: 18px;
-            font-family: monospace;
-            z-index: 20;
-            border: 1px solid #dbb45c;
-            color: #f9e7b3;
         }
-
-        .res {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        
+        .serverCard {
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 40px;
+            text-align: center;
+            border: 2px solid #ffd966;
+            box-shadow: 0 0 50px rgba(0,255,0,0.2);
+            min-width: 320px;
         }
-
-        #onlineCounter {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: #000000aa;
-            backdrop-filter: blur(8px);
-            padding: 8px 16px;
-            border-radius: 40px;
+        
+        .serverCard h1 {
+            color: #ffd966;
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #ffaa33;
+        }
+        
+        .serverCard .serverName {
+            font-size: 28px;
             color: #7eff9e;
-            font-weight: bold;
-            font-family: monospace;
-            z-index: 20;
-            font-size: 14px;
-        }
-
-        #status {
-            position: absolute;
-            bottom: 16px;
-            left: 16px;
-            background: #000000aa;
-            backdrop-filter: blur(8px);
-            padding: 6px 14px;
-            border-radius: 30px;
-            color: #88ff88;
-            font-size: 12px;
-            font-family: monospace;
-            z-index: 20;
-        }
-
-        .craftPanel {
-            position: absolute;
-            bottom: 16px;
-            right: 16px;
-            background: #1a1510e0;
-            backdrop-filter: blur(12px);
-            padding: 12px;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 20;
-            border: 1px solid #c9a05c;
-        }
-
-        .craftBtn {
-            background: #4a3020;
-            border: none;
-            color: #ffecb3;
-            font-weight: bold;
-            padding: 6px 12px;
-            border-radius: 25px;
-            font-family: monospace;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.05s linear;
-        }
-
-        .craftBtn:active {
-            transform: translateY(1px);
-        }
-
-        .emeraldBtn {
-            background: #1f5a2a;
-            border: 1px solid #5fdc6f;
-            color: #c8ffb0;
-        }
-
-        #skillBar {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #000000cc;
-            backdrop-filter: blur(10px);
-            padding: 8px 20px;
+            background: #2a3a1ae0;
+            padding: 10px 20px;
             border-radius: 60px;
-            display: flex;
-            gap: 24px;
-            z-index: 20;
-            font-family: monospace;
+            margin: 20px 0;
+        }
+        
+        .playBtn {
+            background: #4a7a3a;
+            border: none;
+            font-size: 32px;
             font-weight: bold;
-            color: #ddcc88;
+            padding: 15px 40px;
+            border-radius: 60px;
+            color: #ffecb3;
+            cursor: pointer;
+            transition: 0.1s linear;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+        
+        .playBtn:hover {
+            background: #6a9a4a;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px #8affaa;
+        }
+        
+        .playersCount {
+            font-size: 18px;
+            color: #aaa;
+            margin-top: 20px;
+        }
+        
+        #gameUI {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 50;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 12px 20px;
+            color: #ffe6aa;
+            font-weight: bold;
+            pointer-events: none;
             font-size: 14px;
         }
-
-        .skill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        
+        #inventory {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 15px;
+            min-width: 220px;
+            border: 1px solid #c9a05c;
+            pointer-events: auto;
+            font-size: 13px;
         }
-
+        
+        .invSlot {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #5a4a2a;
+        }
+        
+        #craftMenu {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 15px;
+            min-width: 200px;
+            border: 1px solid #dbb45c;
+            pointer-events: auto;
+            font-size: 12px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .craftItem {
+            background: #2a2a1a;
+            margin: 5px 0;
+            padding: 6px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.05s;
+        }
+        
+        .craftItem:hover {
+            background: #4a6a3a;
+            transform: translateX(-3px);
+        }
+        
+        #healthBar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            height: 20px;
+            background: #330000;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid gold;
+        }
+        
+        #healthFill {
+            width: 100%;
+            height: 100%;
+            background: #ff3333;
+            transition: width 0.2s;
+        }
+        
+        #damageIndicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            font-size: 48px;
+            color: red;
+            font-weight: bold;
+            text-shadow: 0 0 10px black;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.1s;
+            z-index: 200;
+        }
+        
         @media (max-width: 700px) {
-            #inventory { font-size: 12px; gap: 12px; padding: 6px 14px; top: 8px; left: 8px; }
-            .craftPanel { transform: scale(0.85); right: 0; bottom: 0; }
-            #skillBar { font-size: 10px; gap: 12px; padding: 4px 12px; }
+            #craftMenu { font-size: 10px; padding: 8px; max-height: 50vh; }
+            #inventory { font-size: 10px; padding: 8px; }
         }
     </style>
 </head>
 <body>
-<div id="gameContainer">
-    <canvas id="gameCanvas" width="1100" height="650"></canvas>
-    
-    <div id="inventory">
-        <div class="res">🪵 <span id="woodVal">0</span></div>
-        <div class="res">🪨 <span id="stoneVal">0</span></div>
-        <div class="res">💎 <span id="emeraldVal">0</span></div>
+    <div id="joinScreen">
+        <div class="serverCard">
+            <h1>⚔️ SLIZE ⚔️</h1>
+            <div class="serverName">🇪🇺 EU Slize</div>
+            <button class="playBtn" id="playBtn">▶ ИГРАТЬ</button>
+            <div class="playersCount" id="playersCountDisplay">👥 онлайн: --</div>
+        </div>
     </div>
     
-    <div id="onlineCounter">
-        👥 <span id="playersOnline">1</span>
+    <div id="gameUI" style="display: none;">
+        🏹 <span id="currentWeapon">Кулак</span> | 💪 Урон: <span id="damageVal">5</span>
     </div>
     
-    <div id="status">
-        🔌 соединение...
+    <div id="healthBar" style="display: none;">
+        <div id="healthFill"></div>
     </div>
     
-    <div class="craftPanel">
-        <button class="craftBtn" id="craftWallBtn">🧱 Стена (10 дерева)</button>
-        <button class="craftBtn emeraldBtn" id="craftEmeraldWallBtn">✨ Изумрудная стена (5 изумрудов)</button>
-        <button class="craftBtn" id="craftStaffBtn">🔮 Посох телепорта (3 изумруда)</button>
+    <div id="damageIndicator">💥</div>
+    
+    <div id="inventory" style="display: none;">
+        <div style="margin-bottom: 8px; border-bottom: 1px solid gold;">📦 ИНВЕНТАРЬ</div>
+        <div class="invSlot">🪵 Дерево: <span id="woodInv">0</span></div>
+        <div class="invSlot">🪨 Камень: <span id="stoneInv">0</span></div>
+        <div class="invSlot">⛏️ Железо: <span id="ironInv">0</span></div>
+        <div class="invSlot">💎 Изумруд: <span id="emeraldInv">0</span></div>
+        <div class="invSlot">🛢️ Жир (топливо): <span id="fuelInv">0</span></div>
     </div>
     
-    <div id="skillBar">
-        <div class="skill">🔮 [F] Телепорт</div>
-        <div class="skill">💪 Алтарь силы (активен)</div>
+    <div id="craftMenu" style="display: none;">
+        <div style="margin-bottom: 8px; border-bottom: 1px solid gold;">🔨 КРАФТ</div>
+        <div class="craftItem" data-craft="wooden_sword">🗡️ Деревянный меч (10 дерева) - урон 12</div>
+        <div class="craftItem" data-craft="stone_axe">🪓 Каменный топор (8 камня) - урон 15</div>
+        <div class="craftItem" data-craft="iron_pickaxe">⛏️ Железная кирка (5 железа) - урон 20</div>
+        <div class="craftItem" data-craft="chainsaw">⛽ Бензопила (10 дерева + 5 железа + 3 жира) - урон 35</div>
+        <div class="craftItem" data-craft="crossbow">🏹 Арбалет (15 дерева + 8 железа) - урон 28</div>
+        <div class="craftItem" data-craft="totem">🪔 Тотем возрождения (20 камня + 5 изумруда)</div>
+        <div class="craftItem" data-craft="furnace">🔥 Печка (15 камня + 5 железа)</div>
+        <div class="craftItem" data-craft="chest">📦 Сундук (20 дерева)</div>
     </div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
     
-    // Размеры мира
-    const TILE_SIZE = 44;
-    const WORLD_W = 25;
-    const WORLD_H = 15;
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
     
-    let myId = null;
-    let players = {};
-    let walls = [];
-    let resources = [];
-    
-    let myWood = 0;
-    let myStone = 0;
-    let myEmerald = 0;
-    let staffCooldown = false;
-    let powerBuff = false;
-    let powerEndTime = 0;
-    
-    let socket = io();
-    
-    // Сокет события
-    socket.on('connect', () => {
-        document.getElementById('status').innerHTML = '✅ в игре';
-    });
-    
-    socket.on('init', (data) => {
-        myId = data.id;
-        players = data.players;
-        walls = data.walls;
-        resources = data.resources;
-        myWood = data.myWood || 0;
-        myStone = data.myStone || 0;
-        myEmerald = data.myEmerald || 0;
-        updateUI();
-    });
-    
-    socket.on('updatePlayers', (newPlayers) => { players = newPlayers; });
-    socket.on('updateWalls', (newWalls) => { walls = newWalls; });
-    socket.on('updateResources', (newRes) => { resources = newRes; });
-    
-    socket.on('playerUpdate', (data) => {
-        if (data.id === myId) {
-            myWood = data.wood;
-            myStone = data.stone;
-            myEmerald = data.emerald;
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        
+        // --- НАСТРОЙКИ ---
+        const socket = io();
+        let myId = null;
+        let players = {};
+        let animals = {};
+        let resources3d = [];
+        
+        // Инвентарь
+        let inventory = {
+            wood: 5,
+            stone: 3,
+            iron: 0,
+            emerald: 0,
+            fuel: 1
+        };
+        
+        let currentWeapon = "fist";
+        let weaponDamage = 5;
+        let myHealth = 100;
+        let maxHealth = 100;
+        let attacking = false;
+        
+        // 3D сцена
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a2a1a);
+        scene.fog = new THREE.FogExp2(0x0a2a1a, 0.008);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 12);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        // Освещение
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
+        dirLight.position.set(10, 20, 5);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+        const backLight = new THREE.PointLight(0x557755, 0.5);
+        backLight.position.set(0, 5, -5);
+        scene.add(backLight);
+        
+        // Земля с травой
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x4a7a3a, roughness: 0.9 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Сетка для ориентира
+        const gridHelper = new THREE.GridHelper(80, 20, 0x88aa66, 0x446633);
+        gridHelper.position.y = 0.01;
+        scene.add(gridHelper);
+        
+        // Деревья и бочки (объекты)
+        const trees = [];
+        const barrels = [];
+        
+        function createTree(x, z) {
+            const group = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.8), new THREE.MeshStandardMaterial({ color: 0x8B5A2B }));
+            trunk.position.y = 0.75;
+            trunk.castShadow = true;
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.2, 6), new THREE.MeshStandardMaterial({ color: 0x5c9e3a }));
+            leaves.position.y = 1.5;
+            leaves.castShadow = true;
+            group.add(trunk, leaves);
+            group.position.set(x, 0, z);
+            return group;
+        }
+        
+        function createBarrel(x, z) {
+            const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0xaa4a2a }));
+            barrel.position.set(x, 0.45, z);
+            barrel.castShadow = true;
+            return barrel;
+        }
+        
+        // Генерация мира
+        for (let i = -35; i <= 35; i += 4) {
+            for (let j = -35; j <= 35; j += 4) {
+                if (Math.random() < 0.12 && Math.hypot(i, j) > 8) {
+                    const tree = createTree(i, j);
+                    scene.add(tree);
+                    trees.push({ mesh: tree, x: i, z: j, hp: 20, type: 'tree' });
+                }
+                if (Math.random() < 0.04 && Math.hypot(i, j) > 10) {
+                    const barrel = createBarrel(i, j);
+                    scene.add(barrel);
+                    barrels.push({ mesh: barrel, x: i, z: j, hp: 15, type: 'barrel' });
+                }
+            }
+        }
+        
+        // Животные простые (кубы)
+        function addAnimal(x, z, type) {
+            const color = type === 'deer' ? 0xccaa77 : 0xaa6655;
+            const animal = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshStandardMaterial({ color }));
+            animal.position.set(x, 0.4, z);
+            animal.castShadow = true;
+            scene.add(animal);
+            return animal;
+        }
+        
+        // Игрок (куб с мечом)
+        let myCharacter = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.8), new THREE.MeshStandardMaterial({ color: 0xffaa66 }));
+        myCharacter.castShadow = true;
+        scene.add(myCharacter);
+        
+        let myWeaponModel = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.1), new THREE.MeshStandardMaterial({ color: 0xaa8866 }));
+        myWeaponModel.position.set(0.5, 0.3, 0.4);
+        myCharacter.add(myWeaponModel);
+        
+        // Движение
+        const keyState = { w: false, s: false, a: false, d: false };
+        let myX = 0, myZ = 0;
+        let moveSpeed = 5;
+        
+        window.addEventListener('keydown', (e) => {
+            if (keyState.hasOwnProperty(e.key.toLowerCase())) keyState[e.key.toLowerCase()] = true;
+            if (e.key === ' ' || e.key === 'Space') {
+                e.preventDefault();
+                attack();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (keyState.hasOwnProperty(e.key.toLowerCase())) keyState[e.key.toLowerCase()] = false;
+        });
+        
+        function attack() {
+            if (attacking) return;
+            attacking = true;
+            myWeaponModel.scale.set(1.5, 1, 0.5);
+            setTimeout(() => { myWeaponModel.scale.set(1, 1, 1); attacking = false; }, 200);
+            
+            // Отправляем атаку на сервер
+            socket.emit('attack', { weapon: currentWeapon, damage: weaponDamage });
+            
+            // Визуальный эффект
+            const indicator = document.getElementById('damageIndicator');
+            indicator.style.opacity = '0.6';
+            setTimeout(() => { indicator.style.opacity = '0'; }, 150);
+        }
+        
+        // Обновление UI
+        function updateUI() {
+            document.getElementById('woodInv').innerText = inventory.wood;
+            document.getElementById('stoneInv').innerText = inventory.stone;
+            document.getElementById('ironInv').innerText = inventory.iron;
+            document.getElementById('emeraldInv').innerText = inventory.emerald;
+            document.getElementById('fuelInv').innerText = inventory.fuel;
+            document.getElementById('healthFill').style.width = (myHealth / maxHealth * 100) + '%';
+        }
+        
+        // Крафт
+        document.querySelectorAll('.craftItem').forEach(el => {
+            el.addEventListener('click', () => {
+                const recipe = el.dataset.craft;
+                socket.emit('craft', { recipe, inventory });
+            });
+        });
+        
+        // Сокеты
+        socket.on('init', (data) => {
+            myId = data.id;
+            myX = data.x;
+            myZ = data.z;
+            inventory = data.inventory;
+            myHealth = data.health;
             updateUI();
-            if (data.powerBuff !== undefined) {
-                powerBuff = data.powerBuff;
-                if (powerBuff) powerEndTime = Date.now() + 30000;
-                else powerEndTime = 0;
+            document.getElementById('joinScreen').style.display = 'none';
+            document.getElementById('gameUI').style.display = 'block';
+            document.getElementById('healthBar').style.display = 'block';
+            document.getElementById('inventory').style.display = 'block';
+            document.getElementById('craftMenu').style.display = 'block';
+            document.getElementById('playersCountDisplay').innerText = `👥 онлайн: ${data.online}`;
+        });
+        
+        socket.on('updatePlayers', (newPlayers) => {
+            players = newPlayers;
+        });
+        
+        socket.on('playerUpdate', (data) => {
+            if (data.id === myId) {
+                inventory = data.inventory;
+                myHealth = data.health;
+                updateUI();
             }
-        }
-        if (players[data.id]) {
-            players[data.id].x = data.x;
-            players[data.id].y = data.y;
-        }
-    });
-    
-    socket.on('playerLeft', (id) => { delete players[id]; });
-    socket.on('teleportConfirm', (data) => {
-        if (data.id === myId && players[myId]) {
-            players[myId].x = data.newX;
-            players[myId].y = data.newY;
-        }
-    });
-    
-    function updateUI() {
-        document.getElementById('woodVal').innerText = myWood;
-        document.getElementById('stoneVal').innerText = myStone;
-        document.getElementById('emeraldVal').innerText = myEmerald;
-        document.getElementById('playersOnline').innerText = Object.keys(players).length;
+        });
         
-        // Визуальный эффект баффа
-        if (powerBuff && Date.now() < powerEndTime) {
-            document.getElementById('skillBar').style.background = "#3a5a2ae6";
-            document.getElementById('skillBar').style.border = "1px solid gold";
-        } else {
-            document.getElementById('skillBar').style.background = "#000000cc";
-            document.getElementById('skillBar').style.border = "none";
-            if (powerBuff && Date.now() >= powerEndTime) powerBuff = false;
-        }
-    }
-    
-    // Управление
-    const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, s: false, a: false, d: false };
-    window.addEventListener('keydown', (e) => {
-        let k = e.key;
-        if (keys.hasOwnProperty(k)) keys[k] = true;
-        
-        // Стена на E
-        if (k === 'e' || k === 'E') {
-            e.preventDefault();
-            if (myWood >= 10) {
-                let player = players[myId];
-                if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'normal');
-            } else {
-                document.getElementById('status').innerHTML = '⚠️ не хватает дерева (10)';
-                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('не хватает')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1000);
+        socket.on('attackEffect', (data) => {
+            // Визуальный эффект получения урона
+            if (data.target === myId) {
+                const indicator = document.getElementById('damageIndicator');
+                indicator.style.opacity = '0.8';
+                indicator.style.color = '#ff5555';
+                setTimeout(() => { indicator.style.opacity = '0'; }, 200);
+                myHealth = data.newHealth;
+                updateUI();
             }
-        }
+        });
         
-        // Телепорт на F
-        if (k === 'f' || k === 'F') {
-            e.preventDefault();
-            if (myEmerald >= 3 && !staffCooldown) {
-                socket.emit('teleport', { id: myId, x: players[myId]?.x, y: players[myId]?.y });
-                staffCooldown = true;
-                setTimeout(() => { staffCooldown = false; }, 8000);
-                document.getElementById('status').innerHTML = '🌀 телепорт!';
-                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('телепорт')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1500);
-            } else if (myEmerald < 3) {
-                document.getElementById('status').innerHTML = '💎 нужно 3 изумруда';
-                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('изумруда')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1200);
-            } else if (staffCooldown) {
-                document.getElementById('status').innerHTML = '⏳ посох перезаряжается';
-                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('перезаряжается')) document.getElementById('status').innerHTML = '✅ в игре'; }, 800);
+        socket.on('death', (data) => {
+            if (data.id === myId) {
+                alert('💀 Вас убили! Возродитесь через тотем или заново');
+                myHealth = maxHealth;
+                updateUI();
             }
-        }
-    });
-    
-    window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
-    
-    function sendMovement() {
-        let move = { up: keys.ArrowUp || keys.w, down: keys.ArrowDown || keys.s, left: keys.ArrowLeft || keys.a, right: keys.ArrowRight || keys.d };
-        socket.emit('move', move);
-    }
-    setInterval(sendMovement, 50);
-    
-    // Кнопки крафта
-    document.getElementById('craftWallBtn').onclick = () => {
-        if (myWood >= 10) {
-            let player = players[myId];
-            if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'normal');
-        } else alert('нужно 10 дерева');
-    };
-    
-    document.getElementById('craftEmeraldWallBtn').onclick = () => {
-        if (myEmerald >= 5) {
-            let player = players[myId];
-            if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'emerald');
-        } else alert('нужно 5 изумрудов');
-    };
-    
-    document.getElementById('craftStaffBtn').onclick = () => {
-        if (myEmerald >= 3) {
-            if (!staffCooldown) {
-                socket.emit('teleport', { id: myId, x: players[myId]?.x, y: players[myId]?.y });
-                staffCooldown = true;
-                setTimeout(() => { staffCooldown = false; }, 8000);
-            } else alert('посох перезаряжается');
-        } else alert('нужно 3 изумруда');
-    };
-    
-    // Отрисовка в стиле Dynast.io (детализированная)
-    function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
         
-        // Трава с текстурой
-        for (let i = 0; i < WORLD_W; i++) {
-            for (let j = 0; j < WORLD_H; j++) {
-                let baseColor = (i + j) % 2 === 0 ? '#3c6e3a' : '#468243';
-                ctx.fillStyle = baseColor;
-                ctx.fillRect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                // блики
-                ctx.fillStyle = '#6caa5a';
-                ctx.fillRect(i * TILE_SIZE + 2, j * TILE_SIZE + 2, 4, 4);
+        setInterval(() => {
+            let move = { x: 0, z: 0 };
+            if (keyState.w) move.z -= 1;
+            if (keyState.s) move.z += 1;
+            if (keyState.a) move.x -= 1;
+            if (keyState.d) move.x += 1;
+            if (move.x !== 0 || move.z !== 0) {
+                socket.emit('move', move);
             }
-        }
+        }, 50);
         
-        // Ресурсы (с тенью)
-        for (let r of resources) {
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = "#00000066";
-            if (r.type === 'wood') {
-                ctx.fillStyle = '#7a4a2a';
-                ctx.fillRect(r.x * TILE_SIZE + 6, r.y * TILE_SIZE + 8, TILE_SIZE - 12, TILE_SIZE - 14);
-                ctx.fillStyle = '#bd7a4a';
-                ctx.font = `${TILE_SIZE - 12}px monospace`;
-                ctx.fillText('🪵', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 30);
-            } else if (r.type === 'stone') {
-                ctx.fillStyle = '#6a6a6a';
-                ctx.fillRect(r.x * TILE_SIZE + 6, r.y * TILE_SIZE + 8, TILE_SIZE - 12, TILE_SIZE - 14);
-                ctx.fillStyle = '#bbbbbb';
-                ctx.fillText('🪨', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 30);
-            } else if (r.type === 'emerald') {
-                ctx.fillStyle = '#1f8a3a';
-                ctx.fillRect(r.x * TILE_SIZE + 8, r.y * TILE_SIZE + 8, TILE_SIZE - 16, TILE_SIZE - 16);
-                ctx.fillStyle = '#6eff8e';
-                ctx.font = 'bold 24px monospace';
-                ctx.fillText('💎', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 32);
-            }
-        }
-        ctx.shadowBlur = 0;
-        
-        // Стены с градацией
-        for (let w of walls) {
-            if (w.type === 'emerald') {
-                ctx.fillStyle = '#2a9a4a';
-                ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2);
-                ctx.fillStyle = '#7affaa';
-                ctx.fillRect(w.x * TILE_SIZE + 6, w.y * TILE_SIZE + 6, TILE_SIZE - 14, TILE_SIZE - 14);
-                ctx.fillStyle = '#c8ffcf';
-                ctx.font = '20px monospace';
-                ctx.fillText('✨', w.x * TILE_SIZE + 14, w.y * TILE_SIZE + 30);
-            } else {
-                ctx.fillStyle = '#6b4c3a';
-                ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2);
-                ctx.fillStyle = '#b87c4a';
-                ctx.fillRect(w.x * TILE_SIZE + 5, w.y * TILE_SIZE + 5, TILE_SIZE - 12, TILE_SIZE - 12);
-                ctx.fillStyle = '#f5bc70';
-                ctx.fillText('🧱', w.x * TILE_SIZE + 14, w.y * TILE_SIZE + 28);
-            }
-        }
-        
-        // Игроки с крутой прорисовкой
-        for (let id in players) {
-            let p = players[id];
-            let x = p.x * TILE_SIZE, y = p.y * TILE_SIZE;
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = "black";
+        // Анимация и камера
+        function animate() {
+            requestAnimationFrame(animate);
             
-            // Тело
-            ctx.fillStyle = id === myId ? '#f5dd8a' : '#e09a5a';
-            ctx.beginPath();
-            ctx.ellipse(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 14, 16, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Доспехи/эффект силы
-            if (powerBuff && Date.now() < powerEndTime && id === myId) {
-                ctx.strokeStyle = '#ffdd88';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.ellipse(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 19, 21, 0, 0, Math.PI * 2);
-                ctx.stroke();
+            // Плавное следование камеры
+            if (myCharacter) {
+                const targetPos = new THREE.Vector3(myCharacter.position.x, myCharacter.position.y + 2, myCharacter.position.z + 6);
+                camera.position.lerp(targetPos, 0.1);
+                camera.lookAt(myCharacter.position);
             }
             
-            // Глаза
-            ctx.fillStyle = '#2f2a2a';
-            ctx.beginPath();
-            ctx.arc(x + TILE_SIZE / 2 - 5, y + TILE_SIZE / 2 - 3, 2.5, 0, Math.PI * 2);
-            ctx.arc(x + TILE_SIZE / 2 + 5, y + TILE_SIZE / 2 - 3, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(x + TILE_SIZE / 2 - 6, y + TILE_SIZE / 2 - 4, 1, 0, Math.PI * 2);
-            ctx.arc(x + TILE_SIZE / 2 + 4, y + TILE_SIZE / 2 - 4, 1, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.font = 'bold 13px monospace';
-            ctx.fillStyle = '#ffffffdd';
-            ctx.shadowBlur = 3;
-            ctx.fillText(p.name || 'воин', x + 6, y - 6);
+            renderer.render(scene, camera);
         }
-        ctx.shadowBlur = 0;
-        requestAnimationFrame(draw);
-    }
-    
-    draw();
-    
-    setInterval(() => {
-        if (powerBuff && Date.now() >= powerEndTime) {
-            powerBuff = false;
-            updateUI();
-        }
-    }, 500);
-</script>
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Простая оптимизация - FPS индикатор
+        console.log('3D игра Slize запущена!');
+    </script>
 </body>
 </html>

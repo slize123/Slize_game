@@ -3,688 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Slize | 2D онлайн игра на весь экран</title>
+    <title>Slize | Survival 2D</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-
-        body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            font-family: 'Segoe UI', 'Courier New', monospace;
-            background: #0a1008;
-        }
-
-        /* Главное меню */
-        #mainMenu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(ellipse at center, #0a2a0a 0%, #030803 100%);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s;
-        }
-
-        .menuContainer {
-            text-align: center;
-            animation: fadeInUp 0.8s ease;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .gameTitle {
-            font-size: 72px;
-            font-weight: bold;
-            color: #ffd966;
-            text-shadow: 0 0 20px #ffaa33, 0 0 40px #ff8833;
-            margin-bottom: 20px;
-            letter-spacing: 8px;
-        }
-
-        .gameSub {
-            font-size: 18px;
-            color: #aaffaa;
-            margin-bottom: 40px;
-            letter-spacing: 2px;
-        }
-
-        .loginBox {
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(15px);
-            border-radius: 48px;
-            padding: 40px;
-            border: 2px solid #d4a547;
-            display: inline-block;
-            min-width: 350px;
-        }
-
-        .googleBtn {
-            background: #4285f4;
-            color: white;
-            border: none;
-            padding: 14px 32px;
-            font-size: 18px;
-            border-radius: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            font-weight: bold;
-            transition: 0.1s;
-            margin-bottom: 20px;
-        }
-
-        .googleBtn:hover {
-            background: #5a95f4;
-            transform: scale(1.02);
-        }
-
-        .nickInput {
-            width: 100%;
-            padding: 14px 20px;
-            font-size: 16px;
-            border-radius: 40px;
-            border: 1px solid #d4a547;
-            background: rgba(20,20,10,0.9);
-            color: #ffecb3;
-            text-align: center;
-            margin-bottom: 20px;
-            font-family: monospace;
-        }
-
-        .playBtn {
-            background: #4a7a3a;
-            color: #ffecb3;
-            border: none;
-            padding: 14px 32px;
-            font-size: 24px;
-            border-radius: 60px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-            transition: 0.05s linear;
-        }
-
-        .playBtn:hover {
-            background: #6a9a4a;
-            transform: scale(1.02);
-        }
-
-        .onlineInfo {
-            margin-top: 20px;
-            color: #88ff88;
-            font-size: 14px;
-        }
-
-        /* Игровой интерфейс */
-        #gameContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            cursor: crosshair;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { width: 100vw; height: 100vh; overflow: hidden; background: #111; font-family: 'Segoe UI', monospace; }
+        canvas { display: block; cursor: crosshair; }
+        
+        /* МЕНЮ */
+        #menu { position: fixed; inset: 0; background: radial-gradient(#1a3a1a, #050a05); display: flex; justify-content: center; align-items: center; z-index: 100; flex-direction: column; }
+        #menu h1 { color: #ffd966; font-size: 64px; text-shadow: 0 0 20px #aa5500; margin-bottom: 10px; }
+        #menu input { padding: 12px; font-size: 18px; border-radius: 10px; border: 2px solid #ffd966; background: #0005; color: #fff; text-align: center; margin-bottom: 15px; width: 250px; }
+        #menu button { background: #4a7a3a; color: #fff; border: none; padding: 12px 30px; font-size: 20px; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        #menu button:hover { background: #6a9a4a; transform: scale(1.05); }
 
         /* HUD */
-        #hud {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            z-index: 100;
-            background: rgba(0,0,0,0.75);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 12px 20px;
-            border: 1px solid #d4a547;
-            font-family: monospace;
-            color: #ffdd99;
-            display: flex;
-            gap: 25px;
-            font-weight: bold;
-            font-size: 14px;
-        }
+        #hud { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; background: #000a; padding: 10px 20px; border-radius: 15px; border: 1px solid #fff2; }
+        .bar { width: 120px; height: 14px; background: #333; border-radius: 7px; overflow: hidden; position: relative; }
+        .bar span { position: absolute; width: 100%; text-align: center; color: #fff; font-size: 10px; line-height: 14px; z-index: 2; text-shadow: 1px 1px 0 #000; }
+        .bar div { height: 100%; transition: width 0.2s; }
+        #hpBar div { background: #ff3333; }
+        #hungBar div { background: #ff9933; }
 
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        /* ИНВЕНТАРЬ (TAB) */
+        #invMenu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111a; backdrop-filter: blur(10px); padding: 20px; border-radius: 15px; border: 2px solid #ffd966; display: none; z-index: 50; min-width: 400px; }
+        #invMenu h2 { color: #ffd966; text-align: center; margin-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .slot { width: 60px; height: 60px; background: #222; border: 2px solid #444; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; font-size: 24px; cursor: pointer; position: relative; }
+        .slot .count { position: absolute; bottom: 2px; right: 5px; font-size: 12px; color: #ffd966; font-weight: bold; }
+        .slot.selected { border-color: #ffd966; background: #333; }
 
-        .statBar {
-            width: 100px;
-            height: 8px;
-            background: #330000;
-            border-radius: 10px;
-            overflow: hidden;
-        }
+        /* КРАФТ (C) */
+        #craftMenu { position: fixed; top: 50%; right: 20px; transform: translateY(-50%); background: #111a; backdrop-filter: blur(10px); padding: 20px; border-radius: 15px; border: 2px solid #44aaff; display: none; z-index: 50; min-width: 300px; }
+        #craftMenu h2 { color: #44aaff; text-align: center; margin-bottom: 15px; }
+        .recipe { background: #222; padding: 10px; margin-bottom: 8px; border-radius: 8px; color: #fff; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .recipe:hover { background: #444; }
+        .recipe .req { font-size: 12px; color: #aaa; }
 
-        .statFill {
-            height: 100%;
-            transition: width 0.1s;
-        }
-        .healthFill { background: #ff4444; }
-        .staminaFill { background: #44ff44; }
-        .expFill { background: #ffaa44; }
-
-        #levelBox {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 8px 16px;
-            border-radius: 30px;
-            color: #ffd966;
-            font-weight: bold;
-            font-family: monospace;
-            z-index: 100;
-        }
-
-        #onlineBox {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 8px 16px;
-            border-radius: 30px;
-            color: #7eff9e;
-            font-family: monospace;
-            z-index: 100;
-        }
-
-        #inventoryPanel {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(12px);
-            border-radius: 20px;
-            padding: 12px;
-            border: 1px solid #d4a547;
-            z-index: 100;
-            min-width: 280px;
-        }
-
-        .invTitle {
-            color: #ffd966;
-            font-size: 12px;
-            text-align: center;
-            margin-bottom: 8px;
-            font-family: monospace;
-        }
-
-        .invGrid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-        }
-
-        .invCell {
-            background: #2a2a1a;
-            border-radius: 8px;
-            padding: 8px 4px;
-            text-align: center;
-            font-size: 11px;
-            color: #ffecb3;
-            font-family: monospace;
-            border: 1px solid #6a5a3a;
-        }
-
-        .invCell .icon {
-            font-size: 20px;
-            display: block;
-        }
-
-        #damagePopup {
-            position: fixed;
-            pointer-events: none;
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff6666;
-            text-shadow: 0 0 5px black;
-            z-index: 200;
-            opacity: 0;
-            transition: opacity 0.1s;
-        }
+        /* ДЕНЬ/НОЧЬ */
+        #nightOverlay { position: fixed; inset: 0; background: #000; pointer-events: none; z-index: 5; transition: opacity 0.5s; }
     </style>
 </head>
 <body>
 
-<!-- ГЛАВНОЕ МЕНЮ -->
-<div id="mainMenu">
-    <div class="menuContainer">
-        <div class="gameTitle">⚔️ SLIZE ⚔️</div>
-        <div class="gameSub">2D Online Survival</div>
-        <div class="loginBox">
-            <input type="text" id="nicknameInput" class="nickInput" placeholder="Введите никнейм" maxlength="16">
-            <button id="googleLoginBtn" class="googleBtn">🔐 Войти через Gmail</button>
-            <button id="playGuestBtn" class="playBtn">▶ ИГРАТЬ ГОСТЕМ</button>
-            <div class="onlineInfo" id="menuOnlineInfo">👥 онлайн: --</div>
-        </div>
-    </div>
+<div id="menu">
+    <h1>⚔️ SLIZE</h1>
+    <input type="text" id="nickInput" placeholder="Ваш никнейм" maxlength="16">
+    <button onclick="startGame()">▶ ИГРАТЬ</button>
 </div>
 
-<!-- ИГРОВОЙ КОНТЕЙНЕР -->
-<div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="hud">
-        <div class="stat">❤️ <div class="statBar"><div class="statFill healthFill" id="healthFill"></div></div></div>
-        <div class="stat">⚡ <div class="statBar"><div class="statFill staminaFill" id="staminaFill"></div></div></div>
-        <div class="stat">⭐ <div class="statBar"><div class="statFill expFill" id="expFill"></div></div></div>
-    </div>
-    
-    <div id="levelBox">🏆 УРОВЕНЬ <span id="levelVal">1</span></div>
-    <div id="onlineBox">👥 <span id="onlineCount">1</span></div>
-    
-    <div id="inventoryPanel">
-        <div class="invTitle">📦 ИНВЕНТАРЬ</div>
-        <div class="invGrid" id="invGrid"></div>
-    </div>
-    
-    <div id="damagePopup"></div>
+<canvas id="c"></canvas>
+<div id="nightOverlay"></div>
+
+<div id="hud">
+    <div>❤️<div class="bar" id="hpBar"><span>100</span><div style="width:100%"></div></div></div>
+    <div>🍖<div class="bar" id="hungBar"><span>100</span><div style="width:100%"></div></div></div>
+</div>
+
+<div id="invMenu">
+    <h2>🎒 Инвентарь (TAB)</h2>
+    <div class="grid" id="invGrid"></div>
+    <div style="color:#aaa; font-size:12px; margin-top:10px; text-align:center;">ПКМ по еде — съесть. ЛКМ по стене — строить.</div>
+</div>
+
+<div id="craftMenu">
+    <h2>🔨 Крафт (C)</h2>
+    <div id="craftList"></div>
 </div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    // ========== НАСТРОЙКИ ==========
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+let socket = null;
+let myId = null;
+let state = { players: {}, resources: [], buildings: [], mobs: [] };
+let recipes = [];
+let invOpen = false, craftOpen = false;
+let selectedSlot = -1;
+let keys = {};
+let mouseAngle = 0;
+let worldW = 200, worldH = 200;
+const TILE = 48;
+
+// Камера
+let camX = 0, camY = 0;
+
+function startGame() {
+    const nick = document.getElementById('nickInput').value.trim() || 'Гость';
+    document.getElementById('menu').style.display = 'none';
+    socket = io();
+
+    socket.on('init', (data) => {
+        myId = data.id;
+        worldW = data.worldW; worldH = data.worldH;
+        recipes = data.recipes;
+        renderCraftMenu();
+    });
+
+    socket.on('gameState', (newState) => {
+        state = newState;
+        updateHUD();
+        updateNight();
+    });
     
-    let socket = null;
-    let myId = null;
-    let players = {};
-    let resources = [];
-    let trees = [];
-    let stones = [];
-    let golds = [];
-    let chests = [];
-    
-    let myX = 0, myY = 0;
-    let myHealth = 100;
-    let myStamina = 100;
-    let myExp = 0;
-    let myLevel = 1;
-    let myMaxExp = 100;
-    let myDamage = 10;
-    let inventory = [];
-    
-    let cameraX = 0, cameraY = 0;
-    let attackCooldown = 0;
-    let walkAnim = 0;
-    let playerDirection = 'down';
-    
-    // Управление
-    const keys = { w: false, s: false, a: false, d: false };
-    
-    // Размеры карты (большая!)
-    const WORLD_W = 80;
-    const WORLD_H = 60;
-    const TILE_SIZE = 48;
-    
-    // ========== БИОМЫ (разные цвета) ==========
-    function getBiome(x, y) {
-        const centerX = WORLD_W/2, centerY = WORLD_H/2;
-        const dist = Math.hypot(x - centerX, y - centerY);
-        if (dist < 15) return { name: 'center', ground: '#8aaa6a', dark: '#7a9a5a', tree: '#3c9a2a' };
-        if (dist < 25) return { name: 'forest', ground: '#4a7a3a', dark: '#3a6a2a', tree: '#2a7a1a' };
-        if (dist < 35) return { name: 'plains', ground: '#6a9a4a', dark: '#5a8a3a', tree: '#4aaa2a' };
-        if (x < 20) return { name: 'desert', ground: '#c4a86a', dark: '#b49858', tree: '#8a6a3a' };
-        if (x > WORLD_W - 20) return { name: 'snow', ground: '#aaccdd', dark: '#99bbcc', tree: '#88aacc' };
-        return { name: 'swamp', ground: '#5a7a4a', dark: '#4a6a3a', tree: '#3a8a2a' };
-    }
-    
-    // ========== ОТРИСОВКА ==========
-    function drawGround() {
-        for (let i = 0; i < WORLD_W; i++) {
-            for (let j = 0; j < WORLD_H; j++) {
-                const x = i * TILE_SIZE - cameraX;
-                const y = j * TILE_SIZE - cameraY;
-                if (x + TILE_SIZE > 0 && x < canvas.width && y + TILE_SIZE > 0 && y < canvas.height) {
-                    const biome = getBiome(i, j);
-                    ctx.fillStyle = (i + j) % 2 === 0 ? biome.ground : biome.dark;
-                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                    
-                    // Детали травы
-                    if (Math.random() < 0.03) {
-                        ctx.fillStyle = '#aaffaa';
-                        ctx.fillRect(x + Math.random() * TILE_SIZE, y + Math.random() * TILE_SIZE, 2, 2);
-                    }
-                }
+    socket.on('onlineCount', (c) => { /* Можно добавить в HUD */ });
+}
+
+// УПРАВЛЕНИЕ
+window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Tab') { e.preventDefault(); invOpen = !invOpen; document.getElementById('invMenu').style.display = invOpen ? 'block' : 'none'; renderInv(); }
+    if (e.key.toLowerCase() === 'c') { craftOpen = !craftOpen; document.getElementById('craftMenu').style.display = craftOpen ? 'block' : 'none'; }
+});
+window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+window.addEventListener('mousemove', (e) => {
+    if (!myId || !state.players[myId]) return;
+    const p = state.players[myId];
+    const px = p.x * TILE - camX;
+    const py = p.y * TILE - camY;
+    mouseAngle = Math.atan2(e.clientY - py, e.clientX - px);
+});
+window.addEventListener('mousedown', (e) => {
+    if (!socket || !myId) return;
+    if (e.button === 0) { // ЛКМ
+        if (invOpen && selectedSlot !== -1) {
+            const item = state.players[myId].inventory[selectedSlot];
+            if (item && (item.id === 'wall' || item.id === 'campfire')) {
+                socket.emit('placeBuilding', { slotIndex: selectedSlot });
+                return;
+            }
+        }
+        socket.emit('attack');
+    } else if (e.button === 2) { // ПКМ (есть)
+        if (invOpen && selectedSlot !== -1) {
+            const item = state.players[myId].inventory[selectedSlot];
+            if (item && (item.id === 'berry' || item.id === 'meat')) {
+                socket.emit('eat', item.id);
             }
         }
     }
+});
+
+// Отправка движения
+setInterval(() => {
+    if (!socket || !myId) return;
+    let dx = 0, dy = 0;
+    if (keys['w'] || keys['ц']) dy = -1;
+    if (keys['s'] || keys['ы']) dy = 1;
+    if (keys['a'] || keys['ф']) dx = -1;
+    if (keys['d'] || keys['в']) dx = 1;
+    socket.emit('move', { dx, dy, angle: mouseAngle });
+}, 1000/30);
+
+function updateHUD() {
+    if (!myId || !state.players[myId]) return;
+    const p = state.players[myId];
+    const hpBar = document.getElementById('hpBar');
+    const hungBar = document.getElementById('hungBar');
+    hpBar.querySelector('div').style.width = p.hp + '%';
+    hpBar.querySelector('span').innerText = Math.floor(p.hp);
+    hungBar.querySelector('div').style.width = p.hunger + '%';
+    hungBar.querySelector('span').innerText = Math.floor(p.hunger);
+    if (invOpen) renderInv();
+}
+
+function updateNight() {
+    const time = Date.now() / 1000;
+    const nightLevel = (Math.sin(time / 30) + 1) / 2; // 0 - день, 1 - ночь
+    document.getElementById('nightOverlay').style.opacity = nightLevel * 0.6;
+}
+
+function renderInv() {
+    if (!myId || !state.players[myId]) return;
+    const inv = state.players[myId].inventory;
+    const grid = document.getElementById('invGrid');
+    grid.innerHTML = '';
+    const icons = { wood: '🪵', stone: '🪨', berry: '🫐', meat: '🥩', wall: '🧱', campfire: '🔥', wood_sword: '🗡️', pickaxe: '⛏️' };
     
-    function drawResource(type, x, y, variant) {
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = '#00000066';
+    for (let i = 0; i < 20; i++) {
+        const item = inv[i];
+        const div = document.createElement('div');
+        div.className = 'slot' + (selectedSlot === i ? ' selected' : '');
+        div.onclick = () => { selectedSlot = i; renderInv(); };
+        if (item) {
+            div.innerHTML = `${icons[item.id] || '❓'}<span class="count">${item.count}</span>`;
+        }
+        grid.appendChild(div);
+    }
+}
+
+function renderCraftMenu() {
+    const list = document.getElementById('craftList');
+    list.innerHTML = '';
+    recipes.forEach((r, i) => {
+        const div = document.createElement('div');
+        div.className = 'recipe';
+        div.onclick = () => socket.emit('craft', i);
+        const reqStr = r.req.map(x => `${x.item} x${x.count}`).join(', ');
+        div.innerHTML = `<b>${r.name}</b><span class="req">${reqStr}</span>`;
+        list.appendChild(div);
+    });
+}
+
+// ОТРИСОВКА
+function getBiomeColor(x, y) {
+    if (x < 40 && y < 40) return ['#e8d4a0', '#d4c090']; // Пустыня
+    if (x > 160 && y > 160) return ['#dce8f0', '#c8d8e4']; // Снег
+    if (x > 80 && x < 120 && y > 80 && y < 120) return ['#2a5a1a', '#1e4a12']; // Лес
+    return ['#4a8a2a', '#3e7a20']; // Равнины
+}
+
+function draw() {
+    requestAnimationFrame(draw);
+    if (!myId || !state.players[myId]) return;
+    
+    const p = state.players[myId];
+    camX += (p.x * TILE - canvas.width/2 - camX) * 0.1;
+    camY += (p.y * TILE - canvas.height/2 - camY) * 0.1;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    // Земля
+    const startX = Math.max(0, Math.floor(camX / TILE));
+    const startY = Math.max(0, Math.floor(camY / TILE));
+    const endX = Math.min(worldW, Math.ceil((camX + canvas.width) / TILE) + 1);
+    const endY = Math.min(worldH, Math.ceil((camY + canvas.height) / TILE) + 1);
+
+    for (let x = startX; x < endX; x++) {
+        for (let y = startY; y < endY; y++) {
+            const colors = getBiomeColor(x, y);
+            ctx.fillStyle = (x + y) % 2 === 0 ? colors[0] : colors[1];
+            ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+        }
+    }
+
+    // Постройки
+    for (let b of state.buildings) {
+        if (b.type === 'wall') {
+            ctx.fillStyle = '#6a4a2a';
+            ctx.fillRect(b.x * TILE + 4, b.y * TILE + 4, TILE - 8, TILE - 8);
+            ctx.fillStyle = '#8a6a4a';
+            ctx.fillRect(b.x * TILE + 8, b.y * TILE + 8, TILE - 16, TILE - 16);
+        } else if (b.type === 'campfire') {
+            ctx.fillStyle = '#ff6622';
+            ctx.beginPath();
+            ctx.arc(b.x * TILE + TILE/2, b.y * TILE + TILE/2, 15, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#ffaa00';
+            ctx.beginPath();
+            ctx.arc(b.x * TILE + TILE/2, b.y * TILE + TILE/2, 8, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    // Ресурсы
+    for (let r of state.resources) {
+        const rx = r.x * TILE + TILE/2;
+        const ry = r.y * TILE + TILE/2;
         
-        if (type === 'tree') {
-            ctx.fillStyle = '#6b4a2a';
-            ctx.fillRect(x + 16, y + 20, 12, 32);
-            ctx.fillStyle = variant || '#3c9a2a';
-            ctx.beginPath();
-            ctx.arc(x + 22, y + 18, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#2a7a1a';
-            ctx.beginPath();
-            ctx.arc(x + 18, y + 12, 10, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (type === 'stone') {
+        ctx.save();
+        ctx.translate(rx, ry);
+        
+        if (r.type === 'tree' || r.type === 'snow_tree') {
+            ctx.fillStyle = '#4a2a0a';
+            ctx.fillRect(-4, 0, 8, 20);
+            ctx.fillStyle = r.type === 'snow_tree' ? '#ccddee' : '#1a6a0a';
+            ctx.beginPath(); ctx.arc(0, -5, 15, 0, Math.PI*2); ctx.fill();
+        } else if (r.type === 'stone') {
             ctx.fillStyle = '#888';
-            ctx.fillRect(x + 10, y + 16, 32, 28);
+            ctx.beginPath(); ctx.arc(0, 5, 14, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#aaa';
-            ctx.fillRect(x + 16, y + 20, 20, 20);
-            for (let i = 0; i < 3; i++) {
-                ctx.fillStyle = '#666';
-                ctx.fillRect(x + 14 + i * 8, y + 28, 4, 8);
-            }
-        } else if (type === 'gold') {
-            ctx.fillStyle = '#d4af37';
-            ctx.fillRect(x + 12, y + 14, 28, 30);
-            ctx.fillStyle = '#ffd700';
-            ctx.fillText('⭐', x + 20, y + 34);
-        } else if (type === 'chest') {
-            ctx.fillStyle = '#8a6a3a';
-            ctx.fillRect(x + 10, y + 16, 32, 24);
-            ctx.fillStyle = '#d4a547';
-            ctx.fillRect(x + 14, y + 20, 24, 16);
-            ctx.fillStyle = '#ffcc66';
-            ctx.fillText('🎁', x + 20, y + 36);
+            ctx.beginPath(); ctx.arc(-3, 2, 10, 0, Math.PI*2); ctx.fill();
+        } else if (r.type === 'bush') {
+            ctx.fillStyle = '#2a8a1a';
+            ctx.beginPath(); ctx.arc(0, 5, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath(); ctx.arc(3, 3, 3, 0, Math.PI*2); ctx.fill(); // ягода
+        } else if (r.type === 'cactus') {
+            ctx.fillStyle = '#2a6a1a';
+            ctx.fillRect(-4, -10, 8, 25);
+            ctx.fillRect(-10, -5, 6, 10);
+            ctx.fillRect(4, 0, 6, 10);
         }
-        ctx.shadowBlur = 0;
+        ctx.restore();
     }
-    
-    function drawPlayer(x, y, name, health, isMe, direction, anim, level) {
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = '#00000066';
+
+    // Мобы
+    for (let m of state.mobs) {
+        const mx = m.x * TILE + TILE/2;
+        const my = m.y * TILE + TILE/2;
+        ctx.save();
+        ctx.translate(mx, my);
+        ctx.rotate(m.angle);
+        
+        ctx.fillStyle = '#555';
+        ctx.beginPath(); ctx.ellipse(0, 0, 12, 8, 0, 0, Math.PI*2); ctx.fill(); // Тело
+        ctx.fillStyle = '#333';
+        ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(18, -5); ctx.lineTo(18, 5); ctx.fill(); // Морда
+        
+        // Глаза
+        ctx.fillStyle = '#ff0';
+        ctx.beginPath(); ctx.arc(10, -3, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(10, 3, 2, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    // Игроки
+    for (let id in state.players) {
+        const pl = state.players[id];
+        const px = pl.x * TILE + TILE/2;
+        const py = pl.y * TILE + TILE/2;
+        const isMe = id === myId;
+        const legOff = Math.sin(pl.moveAnim) * 4;
+
+        ctx.save();
+        ctx.translate(px, py);
         
         // Тело
         ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
-        ctx.beginPath();
-        ctx.ellipse(x + 24, y + 20, 14, 18, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
         
-        // Ноги с анимацией
-        const legOffset = anim ? 4 : 0;
+        // Ноги
         ctx.fillStyle = '#4a2a1a';
-        ctx.fillRect(x + 18, y + 28 + legOffset, 6, 12);
-        ctx.fillRect(x + 28, y + 28 - legOffset/2, 6, 12);
+        ctx.fillRect(-5, 10, 4, 8 + legOff);
+        ctx.fillRect(1, 10, 4, 8 - legOff);
+
+        // Рука с оружием
+        ctx.save();
+        ctx.rotate(pl.angle);
+        ctx.fillStyle = '#ffcc88';
+        ctx.fillRect(8, -3, 8, 6); // Рука
         
-        // Голова
-        ctx.fillStyle = '#3a2a1a';
-        ctx.fillRect(x + 20, y + 8, 8, 10);
+        if (pl.isAttacking) ctx.rotate(0.5); // Взмах
         
-        // Глаза
-        ctx.fillStyle = '#2a2a2a';
-        ctx.beginPath();
-        ctx.arc(x + 20, y + 18, 3, 0, Math.PI * 2);
-        ctx.arc(x + 28, y + 18, 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (pl.equip === 'wood_sword') {
+            ctx.fillStyle = '#aa8844';
+            ctx.fillRect(16, -2, 14, 4);
+        } else if (pl.equip === 'pickaxe') {
+            ctx.fillStyle = '#888';
+            ctx.fillRect(16, -2, 12, 4);
+        }
+        ctx.restore();
+
+        // Имя и ХП
         ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(x + 19, y + 17, 1, 0, Math.PI * 2);
-        ctx.arc(x + 27, y + 17, 1, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Уровень над головой
-        ctx.fillStyle = '#ffd966';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText(`Lv.${level}`, x + 18, y - 8);
-        
-        // Имя
-        ctx.fillStyle = '#ffffffcc';
         ctx.font = 'bold 11px monospace';
-        ctx.fillText(name, x + 12, y - 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(pl.name, 0, -20);
         
-        // Полоска HP
-        ctx.fillStyle = '#aa0000';
-        ctx.fillRect(x + 6, y - 14, 40, 5);
-        ctx.fillStyle = '#00aa00';
-        ctx.fillRect(x + 6, y - 14, 40 * (health / 100), 5);
-        
-        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(-15, -16, 30, 4);
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(-15, -16, 30 * (pl.hp / pl.maxHp), 4);
+
+        ctx.restore();
     }
-    
-    // ========== ИНВЕНТАРЬ ==========
-    function updateInventoryUI() {
-        const grid = document.getElementById('invGrid');
-        if (!grid) return;
-        grid.innerHTML = '';
-        for (let i = 0; i < 12; i++) {
-            const item = inventory[i] || { name: 'empty', count: 0 };
-            const icons = { wood: '🪵', stone: '🪨', gold: '🪙', meat: '🍖', crystal: '💎', empty: '⬜' };
-            grid.innerHTML += `<div class="invCell"><span class="icon">${icons[item.name] || '📦'}</span>${item.count > 0 ? item.count : ''}</div>`;
-        }
-    }
-    
-    function addToInventory(itemName, amount) {
-        for (let i = 0; i < inventory.length; i++) {
-            if (inventory[i] && inventory[i].name === itemName) {
-                inventory[i].count += amount;
-                updateInventoryUI();
-                return;
-            }
-        }
-        for (let i = 0; i < 12; i++) {
-            if (!inventory[i] || inventory[i].name === 'empty') {
-                inventory[i] = { name: itemName, count: amount };
-                updateInventoryUI();
-                return;
-            }
-        }
-    }
-    
-    // ========== АТАКА ==========
-    function attack() {
-        if (attackCooldown > 0 || myStamina < 10) return;
-        myStamina = Math.max(0, myStamina - 10);
-        attackCooldown = 12;
-        
-        // Визуал удара
-        const popup = document.getElementById('damagePopup');
-        popup.style.opacity = '1';
-        popup.style.left = canvas.width/2 - 20 + 'px';
-        popup.style.top = canvas.height/2 - 40 + 'px';
-        setTimeout(() => { popup.style.opacity = '0'; }, 150);
-        
-        socket.emit('attack', { damage: myDamage });
-        updateUI();
-    }
-    
-    // ========== UI ==========
-    function updateUI() {
-        document.getElementById('healthFill').style.width = (myHealth / 100 * 100) + '%';
-        document.getElementById('staminaFill').style.width = (myStamina / 100 * 100) + '%';
-        document.getElementById('expFill').style.width = (myExp / myMaxExp * 100) + '%';
-        document.getElementById('levelVal').innerText = myLevel;
-        document.getElementById('onlineCount').innerText = Object.keys(players).length;
-    }
-    
-    // ========== ДВИЖЕНИЕ ==========
-    function sendMove() {
-        let dx = 0, dy = 0;
-        if (keys.d) dx = 1;
-        if (keys.a) dx = -1;
-        if (keys.s) dy = 1;
-        if (keys.w) dy = -1;
-        
-        if (dx !== 0 || dy !== 0) {
-            if (dx > 0) playerDirection = 'right';
-            else if (dx < 0) playerDirection = 'left';
-            else if (dy > 0) playerDirection = 'down';
-            else if (dy < 0) playerDirection = 'up';
-            socket.emit('move', { dx, dy });
-        }
-        
-        // Анимация ходьбы
-        walkAnim = (walkAnim + 0.2) % Math.PI * 2;
-    }
-    setInterval(sendMove, 50);
-    
-    // Восстановление стамины и кулдауна
-    setInterval(() => {
-        if (myStamina < 100) myStamina = Math.min(100, myStamina + 1);
-        if (attackCooldown > 0) attackCooldown--;
-        updateUI();
-    }, 100);
-    
-    // ========== УПРАВЛЕНИЕ ==========
-    window.addEventListener('keydown', (e) => {
-        const k = e.key.toLowerCase();
-        if (keys.hasOwnProperty(k)) keys[k] = true;
-    });
-    window.addEventListener('keyup', (e) => {
-        const k = e.key.toLowerCase();
-        if (keys.hasOwnProperty(k)) keys[k] = false;
-    });
-    
-    canvas.addEventListener('mousedown', (e) => {
-        if (e.button === 0) attack();
-    });
-    
-    // ========== РАЗМЕР CANVAS НА ВЕСЬ ЭКРАН ==========
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    
-    // ========== СОКЕТЫ ==========
-    function connectToGame(email, nickname, isGuest) {
-        if (socket) socket.disconnect();
-        socket = io();
-        
-        socket.on('connect', () => {
-            socket.emit('login', { email, nickname, isGuest });
-        });
-        
-        socket.on('init', (data) => {
-            myId = data.id;
-            myX = data.x;
-            myY = data.y;
-            inventory = data.inventory || [];
-            myHealth = data.health;
-            myLevel = data.level;
-            myExp = data.exp;
-            myDamage = 10 + (myLevel - 1) * 2;
-            updateUI();
-            updateInventoryUI();
-            document.getElementById('mainMenu').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'block';
-        });
-        
-        socket.on('updatePlayers', (data) => { players = data; });
-        socket.on('updateResources', (data) => { resources = data; });
-        socket.on('playerUpdate', (data) => {
-            if (data.id === myId) {
-                myX = data.x;
-                myY = data.y;
-                myHealth = data.health;
-                inventory = data.inventory;
-                myExp = data.exp;
-                myLevel = data.level;
-                myDamage = 10 + (myLevel - 1) * 2;
-                updateUI();
-                updateInventoryUI();
-            }
-        });
-        socket.on('attackEffect', (data) => {
-            if (data.target === myId) {
-                myHealth = data.newHealth;
-                updateUI();
-            }
-        });
-        socket.on('onlineCount', (count) => {
-            document.getElementById('menuOnlineInfo').innerHTML = `👥 онлайн: ${count}`;
-            document.getElementById('onlineCount').innerText = count;
-        });
-    }
-    
-    // ========== МЕНЮ ==========
-    document.getElementById('playGuestBtn').onclick = () => {
-        const nick = document.getElementById('nicknameInput').value.trim();
-        if (!nick) {
-            alert('Введите никнейм!');
-            return;
-        }
-        connectToGame(null, nick, true);
-    };
-    
-    document.getElementById('googleLoginBtn').onclick = () => {
-        alert('🔐 Для демо-версии вход через Gmail симулирован.\nВ реальном проекте добавьте Google OAuth.');
-        const nick = document.getElementById('nicknameInput').value.trim() || 'Player';
-        connectToGame('demo@email.com', nick, false);
-    };
-    
-    // ========== ОСНОВНОЙ ЦИКЛ ОТРИСОВКИ ==========
-    function draw() {
-        if (!canvas || !ctx) return;
-        
-        // Камера
-        if (myId && players[myId]) {
-            myX = players[myId].x;
-            myY = players[myId].y;
-            cameraX = myX * TILE_SIZE - canvas.width / 2;
-            cameraY = myY * TILE_SIZE - canvas.height / 2;
-            cameraX = Math.min(Math.max(cameraX, -TILE_SIZE * 5), WORLD_W * TILE_SIZE - canvas.width + TILE_SIZE * 5);
-            cameraY = Math.min(Math.max(cameraY, -TILE_SIZE * 5), WORLD_H * TILE_SIZE - canvas.height + TILE_SIZE * 5);
-        }
-        
-        drawGround();
-        
-        // Ресурсы
-        for (let r of resources) {
-            if (!r) continue;
-            const x = r.x * TILE_SIZE - cameraX;
-            const y = r.y * TILE_SIZE - cameraY;
-            drawResource(r.type, x, y, r.variant);
-        }
-        
-        // Игроки
-        const anim = (walkAnim > 0);
-        for (let id in players) {
-            const p = players[id];
-            const x = p.x * TILE_SIZE - cameraX;
-            const y = p.y * TILE_SIZE - cameraY;
-            drawPlayer(x, y, p.name, p.health, id === myId, playerDirection, anim && id === myId, p.level || 1);
-        }
-        
-        requestAnimationFrame(draw);
-    }
-    draw();
+
+    ctx.restore();
+}
+
+draw();
 </script>
 </body>
 </html>

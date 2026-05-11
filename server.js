@@ -1,481 +1,283 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 
-const app = express();
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-const server = http.createServer(app);
+let socket = null;
+let myId = null;
 
-const io = socketIo(server, {
-    cors: {
-        origin: '*'
-    }
+let state = {
+    players: {},
+    resources: [],
+    buildings: [],
+    mobs: []
+};
+
+const TILE = 48;
+
+let keys = {};
+let camX = 0;
+let camY = 0;
+let mouseAngle = 0;
+
+function resize() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+resize();
+addEventListener('resize', resize);
+
+document.getElementById('playGuestBtn').onclick = () => {
+
+    const nickname =
+        document.getElementById('nicknameInput').value.trim()
+        || 'Guest';
+
+    document.getElementById('mainMenu').style.display = 'none';
+
+    socket = io();
+
+    // ВОТ ЭТОГО НЕ ХВАТАЛО
+    socket.emit('login', {
+        nickname
+    });
+
+    socket.on('init', data => {
+
+        myId = data.id;
+
+        camX = data.x * TILE;
+        camY = data.y * TILE;
+    });
+
+    socket.on('gameState', gs => {
+        state = gs;
+    });
+};
+
+addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
 });
 
-app.use(express.static(path.join(__dirname)));
+addEventListener('keyup', e => {
+    keys[e.key.toLowerCase()] = false;
+});
 
-const PORT = process.env.PORT || 3000;
+addEventListener('mousemove', e => {
 
-const WORLD_W = 300;
-const WORLD_H = 300;
+    if (!myId) return;
 
-let nextId = 1;
+    const p = state.players[myId];
+    if (!p) return;
 
-let players = {};
-let resources = [];
-let mobs = [];
-let buildings = [];
+    const px = p.x * TILE - camX + canvas.width / 2;
+    const py = p.y * TILE - camY + canvas.height / 2;
 
-function rand(min, max) {
-    return Math.random() * (max - min) + min;
-}
-
-function dist(x1, y1, x2, y2) {
-    return Math.hypot(x2 - x1, y2 - y1);
-}
-
-function getSpawn() {
-    return {
-        x: rand(100, 200),
-        y: rand(100, 200)
-    };
-}
-
-function addItem(inv, id, count) {
-
-    for (let i = 0; i < inv.length; i++) {
-
-        if (inv[i] && inv[i].id === id) {
-            inv[i].count += count;
-            return;
-        }
-    }
-
-    for (let i = 0; i < inv.length; i++) {
-
-        if (!inv[i]) {
-            inv[i] = {
-                id,
-                count
-            };
-            return;
-        }
-    }
-}
-
-function removeItem(inv, id, count) {
-
-    for (let i = 0; i < inv.length; i++) {
-
-        if (inv[i] && inv[i].id === id) {
-
-            inv[i].count -= count;
-
-            if (inv[i].count <= 0) {
-                inv[i] = null;
-            }
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
-function hasItem(inv, id, count) {
-
-    let total = 0;
-
-    for (const item of inv) {
-
-        if (item && item.id === id) {
-            total += item.count;
-        }
-    }
-
-    return total >= count;
-}
-
-function generateWorld() {
-
-    // TREES
-    for (let i = 0; i < 1500; i++) {
-
-        resources.push({
-            id: nextId++,
-            type: 'tree',
-            x: rand(0, WORLD_W),
-            y: rand(0, WORLD_H),
-            hp: 30,
-            maxHp: 30
-        });
-    }
-
-    // STONES
-    for (let i = 0; i < 800; i++) {
-
-        resources.push({
-            id: nextId++,
-            type: 'stone',
-            x: rand(0, WORLD_W),
-            y: rand(0, WORLD_H),
-            hp: 50,
-            maxHp: 50
-        });
-    }
-
-    // WOLVES
-    for (let i = 0; i < 80; i++) {
-
-        mobs.push({
-            id: nextId++,
-            type: 'wolf',
-            x: rand(0, WORLD_W),
-            y: rand(0, WORLD_H),
-            hp: 60,
-            maxHp: 60,
-            angle: 0,
-            attackCd: 0
-        });
-    }
-}
-
-generateWorld();
-
-io.on('connection', socket => {
-
-    let playerId = null;
-
-    console.log('PLAYER CONNECT');
-
-    socket.on('login', data => {
-
-        const spawn = getSpawn();
-
-        playerId = String(nextId++);
-
-        players[playerId] = {
-
-            id: playerId,
-
-            socketId: socket.id,
-
-            name: data.nickname || 'Guest',
-
-            x: spawn.x,
-            y: spawn.y,
-
-            hp: 100,
-            maxHp: 100,
-
-            hunger: 100,
-
-            stamina: 100,
-            maxStamina: 100,
-
-            angle: 0,
-
-            inventory: Array(20).fill(null),
-
-            equip: 'hand',
-
-            dx: 0,
-            dy: 0,
-
-            attackCd: 0,
-
-            moveAnim: 0
-        };
-
-        addItem(players[playerId].inventory, 'wood', 15);
-
-        socket.emit('init', {
-            id: playerId,
-            x: spawn.x,
-            y: spawn.y
-        });
-
-        console.log('LOGIN:', players[playerId].name);
-    });
-
-    socket.on('move', data => {
-
-        if (!playerId) return;
-
-        const p = players[playerId];
-
-        if (!p) return;
-
-        p.dx = data.dx;
-        p.dy = data.dy;
-
-        p.angle = data.angle;
-
-        let speed = 0.12;
-
-        if (data.sprint && p.stamina > 5) {
-
-            speed = 0.22;
-
-            p.stamina -= 0.5;
-        }
-
-        const len = Math.hypot(data.dx, data.dy);
-
-        if (len > 0) {
-
-            p.x += (data.dx / len) * speed;
-            p.y += (data.dy / len) * speed;
-
-            p.moveAnim += 0.25;
-        }
-
-        p.x = Math.max(0, Math.min(WORLD_W, p.x));
-        p.y = Math.max(0, Math.min(WORLD_H, p.y));
-    });
-
-    socket.on('attack', () => {
-
-        if (!playerId) return;
-
-        const p = players[playerId];
-
-        if (!p) return;
-
-        if (p.attackCd > 0) return;
-
-        p.attackCd = 20;
-
-        let damage = 10;
-
-        if (p.equip === 'wood_sword') {
-            damage = 25;
-        }
-
-        // RESOURCES
-        for (let i = resources.length - 1; i >= 0; i--) {
-
-            const r = resources[i];
-
-            const d = dist(
-                p.x,
-                p.y,
-                r.x,
-                r.y
-            );
-
-            if (d < 2) {
-
-                r.hp -= damage;
-
-                if (r.hp <= 0) {
-
-                    if (r.type === 'tree') {
-                        addItem(p.inventory, 'wood', 5);
-                    }
-
-                    if (r.type === 'stone') {
-                        addItem(p.inventory, 'stone', 4);
-                    }
-
-                    resources.splice(i, 1);
-                }
-
-                break;
-            }
-        }
-
-        // PLAYERS
-        for (const id in players) {
-
-            if (id === playerId) continue;
-
-            const enemy = players[id];
-
-            const d = dist(
-                p.x,
-                p.y,
-                enemy.x,
-                enemy.y
-            );
-
-            if (d < 1.8) {
-
-                enemy.hp -= damage;
-
-                if (enemy.hp <= 0) {
-
-                    enemy.hp = 100;
-                    enemy.hunger = 100;
-
-                    const spawn = getSpawn();
-
-                    enemy.x = spawn.x;
-                    enemy.y = spawn.y;
-                }
-            }
-        }
-
-        // MOBS
-        for (const mob of mobs) {
-
-            const d = dist(
-                p.x,
-                p.y,
-                mob.x,
-                mob.y
-            );
-
-            if (d < 1.8) {
-
-                mob.hp -= damage;
-
-                if (mob.hp <= 0) {
-
-                    addItem(p.inventory, 'meat', 3);
-
-                    mob.hp = mob.maxHp;
-
-                    mob.x = rand(0, WORLD_W);
-                    mob.y = rand(0, WORLD_H);
-                }
-            }
-        }
-    });
-
-    socket.on('craftSword', () => {
-
-        if (!playerId) return;
-
-        const p = players[playerId];
-
-        if (!p) return;
-
-        if (hasItem(p.inventory, 'wood', 10)) {
-
-            removeItem(p.inventory, 'wood', 10);
-
-            p.equip = 'wood_sword';
-        }
-    });
-
-    socket.on('disconnect', () => {
-
-        if (playerId) {
-
-            delete players[playerId];
-
-            console.log('PLAYER LEFT');
-        }
-    });
+    mouseAngle = Math.atan2(
+        e.clientY - py,
+        e.clientX - px
+    );
 });
 
 setInterval(() => {
 
-    // PLAYERS
-    for (const id in players) {
+    if (!socket || !myId) return;
 
-        const p = players[id];
+    let dx = 0;
+    let dy = 0;
 
-        p.hunger -= 0.01;
+    if (keys['w']) dy = -1;
+    if (keys['s']) dy = 1;
+    if (keys['a']) dx = -1;
+    if (keys['d']) dx = 1;
 
-        if (p.hunger < 0) {
-            p.hunger = 0;
-        }
-
-        if (p.hunger <= 0) {
-            p.hp -= 0.05;
-        }
-
-        if (p.hp > p.maxHp) {
-            p.hp = p.maxHp;
-        }
-
-        if (p.attackCd > 0) {
-            p.attackCd--;
-        }
-
-        // STAMINA
-        if (p.dx === 0 && p.dy === 0) {
-            p.stamina += 0.25;
-        }
-
-        p.stamina = Math.max(
-            0,
-            Math.min(100, p.stamina)
-        );
-    }
-
-    // WOLVES AI
-    for (const mob of mobs) {
-
-        if (mob.attackCd > 0) {
-            mob.attackCd--;
-        }
-
-        let target = null;
-        let best = 999;
-
-        for (const id in players) {
-
-            const p = players[id];
-
-            const d = dist(
-                mob.x,
-                mob.y,
-                p.x,
-                p.y
-            );
-
-            if (d < best) {
-                best = d;
-                target = p;
-            }
-        }
-
-        if (target && best < 8) {
-
-            const angle = Math.atan2(
-                target.y - mob.y,
-                target.x - mob.x
-            );
-
-            mob.angle = angle;
-
-            mob.x += Math.cos(angle) * 0.05;
-            mob.y += Math.sin(angle) * 0.05;
-
-            if (best < 1.5 && mob.attackCd <= 0) {
-
-                target.hp -= 8;
-
-                mob.attackCd = 25;
-            }
-
-        } else {
-
-            mob.angle += rand(-0.2, 0.2);
-
-            mob.x += Math.cos(mob.angle) * 0.02;
-            mob.y += Math.sin(mob.angle) * 0.02;
-        }
-    }
-
-    io.emit('gameState', {
-        players,
-        resources,
-        mobs,
-        buildings
+    socket.emit('move', {
+        dx,
+        dy,
+        angle: mouseAngle
     });
 
 }, 1000 / 30);
 
-server.listen(PORT, '0.0.0.0', () => {
+function drawGround() {
 
-    console.log('==============================');
-    console.log('SLIZE SERVER STARTED');
-    console.log('PORT:', PORT);
-    console.log('WORLD:', WORLD_W, 'x', WORLD_H);
-    console.log('==============================');
-});
+    const startX = Math.floor(camX / TILE) - 2;
+    const startY = Math.floor(camY / TILE) - 2;
+
+    const endX = startX + Math.ceil(canvas.width / TILE) + 4;
+    const endY = startY + Math.ceil(canvas.height / TILE) + 4;
+
+    for (let x = startX; x < endX; x++) {
+        for (let y = startY; y < endY; y++) {
+
+            const sx = x * TILE - camX + canvas.width / 2;
+            const sy = y * TILE - camY + canvas.height / 2;
+
+            const noise = ((x * y) % 2);
+
+            ctx.fillStyle =
+                noise
+                    ? '#3f7d2c'
+                    : '#4f9a38';
+
+            ctx.fillRect(sx, sy, TILE, TILE);
+
+            ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+            ctx.strokeRect(sx, sy, TILE, TILE);
+        }
+    }
+}
+
+function drawPlayer(p, isMe) {
+
+    const x = p.x * TILE - camX + canvas.width / 2;
+    const y = p.y * TILE - camY + canvas.height / 2;
+
+    ctx.save();
+
+    // ТЕНЬ
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + 18, 16, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // НОГИ
+    ctx.fillStyle = '#5c3d22';
+    ctx.fillRect(x - 8, y + 10, 6, 12);
+    ctx.fillRect(x + 2, y + 10, 6, 12);
+
+    // ТЕЛО
+    const grad = ctx.createRadialGradient(
+        x,
+        y,
+        4,
+        x,
+        y,
+        20
+    );
+
+    grad.addColorStop(0, '#ffd7a8');
+    grad.addColorStop(1, '#d88b45');
+
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 16, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ГЛАЗА
+    ctx.fillStyle = '#000';
+
+    ctx.beginPath();
+    ctx.arc(x - 5, y - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x + 5, y - 2, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // РУКА
+    ctx.translate(x, y);
+    ctx.rotate(p.angle);
+
+    ctx.fillStyle = '#ffd7a8';
+    ctx.fillRect(10, -3, 12, 6);
+
+    // МЕЧ
+    if (p.equip === 'wood_sword') {
+
+        ctx.fillStyle = '#a67c52';
+        ctx.fillRect(20, -2, 18, 4);
+
+        ctx.fillStyle = '#5b3a29';
+        ctx.fillRect(18, -5, 4, 10);
+    }
+
+    ctx.restore();
+
+    // ИМЯ
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+
+    ctx.fillText(p.name, x, y - 32);
+
+    // HP BAR
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - 22, y - 24, 44, 6);
+
+    ctx.fillStyle = '#ff3b3b';
+    ctx.fillRect(x - 22, y - 24, 44 * (p.hp / p.maxHp), 6);
+
+    // HUNGER
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - 22, y - 15, 44, 5);
+
+    ctx.fillStyle = '#ffb347';
+    ctx.fillRect(x - 22, y - 15, 44 * (p.hunger / 100), 5);
+
+    // STAMINA
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x - 22, y - 7, 44, 5);
+
+    ctx.fillStyle = '#47b3ff';
+    ctx.fillRect(x - 22, y - 7, 44 * (p.stamina / 100), 5);
+}
+
+function gameLoop() {
+
+    requestAnimationFrame(gameLoop);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!myId) return;
+
+    const me = state.players[myId];
+
+    if (!me) return;
+
+    camX += ((me.x * TILE) - camX) * 0.08;
+    camY += ((me.y * TILE) - camY) * 0.08;
+
+    drawGround();
+
+    // РЕСЫ
+    for (const r of state.resources) {
+
+        const x = r.x * TILE - camX + canvas.width / 2;
+        const y = r.y * TILE - camY + canvas.height / 2;
+
+        if (r.type === 'tree') {
+
+            ctx.fillStyle = '#5c3d22';
+            ctx.fillRect(x - 4, y, 8, 20);
+
+            ctx.fillStyle = '#2b8a3e';
+
+            ctx.beginPath();
+            ctx.arc(x, y - 8, 18, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        if (r.type === 'stone') {
+
+            ctx.fillStyle = '#999';
+
+            ctx.beginPath();
+            ctx.arc(x, y, 14, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // ИГРОКИ
+    for (const id in state.players) {
+        drawPlayer(
+            state.players[id],
+            id === myId
+        );
+    }
+}
+
+gameLoop();
+</script>

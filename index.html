@@ -1,107 +1,189 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dynast.io Light — бесплатно, без регистрации</title>
+    <meta charset="UTF-8">
+    <title>Slize | Бесплатная онлайн игра</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
         body {
-            background: #1a2a1a;
+            background: #0a1008;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: 'Courier New', monospace;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            overflow: hidden;
         }
+
         #gameContainer {
             position: relative;
-            border-radius: 16px;
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 0 0 4px #6b4c3b, 0 10px 25px black;
+            box-shadow: 0 0 0 4px #c9a03d, 0 20px 40px rgba(0,0,0,0.5);
         }
+
         canvas {
             display: block;
             cursor: crosshair;
-            background: #3c5e3a;
+            background: #2c4a2a;
         }
-        #ui {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            background: rgba(0,0,0,0.75);
-            padding: 8px 14px;
-            border-radius: 30px;
-            color: #ffd966;
-            font-weight: bold;
-            backdrop-filter: blur(4px);
-            pointer-events: none;
-            z-index: 10;
-            font-size: 18px;
-            gap: 20px;
-            display: flex;
-        }
+
         #inventory {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            background: #2c1e12e0;
-            padding: 8px 16px;
-            border-radius: 20px;
-            color: white;
+            top: 16px;
+            left: 16px;
+            background: #181c14e6;
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 48px;
+            display: flex;
+            gap: 24px;
             font-weight: bold;
-            backdrop-filter: blur(4px);
-            font-size: 16px;
-            pointer-events: none;
-            z-index: 10;
+            font-size: 18px;
+            font-family: monospace;
+            z-index: 20;
+            border: 1px solid #dbb45c;
+            color: #f9e7b3;
         }
+
+        .res {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #onlineCounter {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #000000aa;
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: #7eff9e;
+            font-weight: bold;
+            font-family: monospace;
+            z-index: 20;
+            font-size: 14px;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: #000000aa;
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 30px;
+            color: #88ff88;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 20;
+        }
+
         .craftPanel {
             position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: #1f1b14e0;
-            backdrop-filter: blur(8px);
+            bottom: 16px;
+            right: 16px;
+            background: #1a1510e0;
+            backdrop-filter: blur(12px);
             padding: 12px;
             border-radius: 20px;
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
             z-index: 20;
-            border: 1px solid #b87c4f;
+            border: 1px solid #c9a05c;
         }
+
         .craftBtn {
-            background: #5a3e2e;
+            background: #4a3020;
             border: none;
             color: #ffecb3;
             font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 30px;
+            padding: 6px 12px;
+            border-radius: 25px;
             font-family: monospace;
             cursor: pointer;
-            transition: 0.1s linear;
-            box-shadow: 0 2px 0 #2d1e12;
-        }
-        .craftBtn:active { transform: translateY(2px); box-shadow: none; }
-        #status {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: black;
-            color: #0f0;
-            padding: 5px 10px;
-            border-radius: 8px;
             font-size: 12px;
-            font-family: monospace;
+            transition: 0.05s linear;
         }
-        @media (max-width: 700px) { .craftBtn { padding: 4px 12px; font-size: 12px; } #ui { font-size: 14px; } }
+
+        .craftBtn:active {
+            transform: translateY(1px);
+        }
+
+        .emeraldBtn {
+            background: #1f5a2a;
+            border: 1px solid #5fdc6f;
+            color: #c8ffb0;
+        }
+
+        #skillBar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000000cc;
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 60px;
+            display: flex;
+            gap: 24px;
+            z-index: 20;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ddcc88;
+            font-size: 14px;
+        }
+
+        .skill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 700px) {
+            #inventory { font-size: 12px; gap: 12px; padding: 6px 14px; top: 8px; left: 8px; }
+            .craftPanel { transform: scale(0.85); right: 0; bottom: 0; }
+            #skillBar { font-size: 10px; gap: 12px; padding: 4px 12px; }
+        }
     </style>
 </head>
 <body>
 <div id="gameContainer">
-    <canvas id="gameCanvas" width="1000" height="600"></canvas>
-    <div id="inventory">🌲 Дерево: <span id="woodCount">0</span>  | 🪨 Камень: <span id="stoneCount">0</span></div>
-    <div id="ui">🏹 <span id="playersOnline">1</span> в игре | 🔨 [E] — поставить стену</div>
+    <canvas id="gameCanvas" width="1100" height="650"></canvas>
+    
+    <div id="inventory">
+        <div class="res">🪵 <span id="woodVal">0</span></div>
+        <div class="res">🪨 <span id="stoneVal">0</span></div>
+        <div class="res">💎 <span id="emeraldVal">0</span></div>
+    </div>
+    
+    <div id="onlineCounter">
+        👥 <span id="playersOnline">1</span>
+    </div>
+    
+    <div id="status">
+        🔌 соединение...
+    </div>
+    
     <div class="craftPanel">
         <button class="craftBtn" id="craftWallBtn">🧱 Стена (10 дерева)</button>
+        <button class="craftBtn emeraldBtn" id="craftEmeraldWallBtn">✨ Изумрудная стена (5 изумрудов)</button>
+        <button class="craftBtn" id="craftStaffBtn">🔮 Посох телепорта (3 изумруда)</button>
     </div>
-    <div id="status">🟢 соединение...</div>
+    
+    <div id="skillBar">
+        <div class="skill">🔮 [F] Телепорт</div>
+        <div class="skill">💪 Алтарь силы (активен)</div>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -109,7 +191,8 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
-    const TILE_SIZE = 40;
+    // Размеры мира
+    const TILE_SIZE = 44;
     const WORLD_W = 25;
     const WORLD_H = 15;
     
@@ -117,11 +200,17 @@
     let players = {};
     let walls = [];
     let resources = [];
+    
     let myWood = 0;
     let myStone = 0;
+    let myEmerald = 0;
+    let staffCooldown = false;
+    let powerBuff = false;
+    let powerEndTime = 0;
     
     let socket = io();
     
+    // Сокет события
     socket.on('connect', () => {
         document.getElementById('status').innerHTML = '✅ в игре';
     });
@@ -133,6 +222,7 @@
         resources = data.resources;
         myWood = data.myWood || 0;
         myStone = data.myStone || 0;
+        myEmerald = data.myEmerald || 0;
         updateUI();
     });
     
@@ -141,98 +231,230 @@
     socket.on('updateResources', (newRes) => { resources = newRes; });
     
     socket.on('playerUpdate', (data) => {
-        if(data.id === myId) {
+        if (data.id === myId) {
             myWood = data.wood;
             myStone = data.stone;
+            myEmerald = data.emerald;
             updateUI();
+            if (data.powerBuff !== undefined) {
+                powerBuff = data.powerBuff;
+                if (powerBuff) powerEndTime = Date.now() + 30000;
+                else powerEndTime = 0;
+            }
         }
-        if(players[data.id]) {
+        if (players[data.id]) {
             players[data.id].x = data.x;
             players[data.id].y = data.y;
         }
     });
     
     socket.on('playerLeft', (id) => { delete players[id]; });
+    socket.on('teleportConfirm', (data) => {
+        if (data.id === myId && players[myId]) {
+            players[myId].x = data.newX;
+            players[myId].y = data.newY;
+        }
+    });
     
     function updateUI() {
-        document.getElementById('woodCount').innerText = myWood;
-        document.getElementById('stoneCount').innerText = myStone;
+        document.getElementById('woodVal').innerText = myWood;
+        document.getElementById('stoneVal').innerText = myStone;
+        document.getElementById('emeraldVal').innerText = myEmerald;
         document.getElementById('playersOnline').innerText = Object.keys(players).length;
+        
+        // Визуальный эффект баффа
+        if (powerBuff && Date.now() < powerEndTime) {
+            document.getElementById('skillBar').style.background = "#3a5a2ae6";
+            document.getElementById('skillBar').style.border = "1px solid gold";
+        } else {
+            document.getElementById('skillBar').style.background = "#000000cc";
+            document.getElementById('skillBar').style.border = "none";
+            if (powerBuff && Date.now() >= powerEndTime) powerBuff = false;
+        }
     }
     
+    // Управление
     const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, s: false, a: false, d: false };
     window.addEventListener('keydown', (e) => {
         let k = e.key;
-        if(keys.hasOwnProperty(k)) keys[k] = true;
-        if(k === 'e' || k === 'E') {
+        if (keys.hasOwnProperty(k)) keys[k] = true;
+        
+        // Стена на E
+        if (k === 'e' || k === 'E') {
             e.preventDefault();
-            if(myWood >= 10) {
+            if (myWood >= 10) {
                 let player = players[myId];
-                if(player) {
-                    socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y));
-                }
+                if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'normal');
             } else {
                 document.getElementById('status').innerHTML = '⚠️ не хватает дерева (10)';
-                setTimeout(()=> { if(document.getElementById('status').innerHTML.includes('не хватает')) document.getElementById('status').innerHTML = '✅ в игре'; }, 800);
+                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('не хватает')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1000);
+            }
+        }
+        
+        // Телепорт на F
+        if (k === 'f' || k === 'F') {
+            e.preventDefault();
+            if (myEmerald >= 3 && !staffCooldown) {
+                socket.emit('teleport', { id: myId, x: players[myId]?.x, y: players[myId]?.y });
+                staffCooldown = true;
+                setTimeout(() => { staffCooldown = false; }, 8000);
+                document.getElementById('status').innerHTML = '🌀 телепорт!';
+                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('телепорт')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1500);
+            } else if (myEmerald < 3) {
+                document.getElementById('status').innerHTML = '💎 нужно 3 изумруда';
+                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('изумруда')) document.getElementById('status').innerHTML = '✅ в игре'; }, 1200);
+            } else if (staffCooldown) {
+                document.getElementById('status').innerHTML = '⏳ посох перезаряжается';
+                setTimeout(() => { if (document.getElementById('status').innerHTML.includes('перезаряжается')) document.getElementById('status').innerHTML = '✅ в игре'; }, 800);
             }
         }
     });
-    window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+    
+    window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
     
     function sendMovement() {
-        let move = { up: keys.ArrowUp||keys.w, down: keys.ArrowDown||keys.s, left: keys.ArrowLeft||keys.a, right: keys.ArrowRight||keys.d };
+        let move = { up: keys.ArrowUp || keys.w, down: keys.ArrowDown || keys.s, left: keys.ArrowLeft || keys.a, right: keys.ArrowRight || keys.d };
         socket.emit('move', move);
     }
     setInterval(sendMovement, 50);
     
+    // Кнопки крафта
     document.getElementById('craftWallBtn').onclick = () => {
-        if(myWood >= 10) {
+        if (myWood >= 10) {
             let player = players[myId];
-            if(player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y));
+            if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'normal');
         } else alert('нужно 10 дерева');
     };
     
+    document.getElementById('craftEmeraldWallBtn').onclick = () => {
+        if (myEmerald >= 5) {
+            let player = players[myId];
+            if (player) socket.emit('placeWall', Math.floor(player.x), Math.floor(player.y), 'emerald');
+        } else alert('нужно 5 изумрудов');
+    };
+    
+    document.getElementById('craftStaffBtn').onclick = () => {
+        if (myEmerald >= 3) {
+            if (!staffCooldown) {
+                socket.emit('teleport', { id: myId, x: players[myId]?.x, y: players[myId]?.y });
+                staffCooldown = true;
+                setTimeout(() => { staffCooldown = false; }, 8000);
+            } else alert('посох перезаряжается');
+        } else alert('нужно 3 изумруда');
+    };
+    
+    // Отрисовка в стиле Dynast.io (детализированная)
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        for(let i=0; i<WORLD_W; i++) {
-            for(let j=0; j<WORLD_H; j++) {
-                ctx.fillStyle = (i+j)%2===0 ? '#42633b' : '#4a7442';
-                ctx.fillRect(i*TILE_SIZE, j*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        
+        // Трава с текстурой
+        for (let i = 0; i < WORLD_W; i++) {
+            for (let j = 0; j < WORLD_H; j++) {
+                let baseColor = (i + j) % 2 === 0 ? '#3c6e3a' : '#468243';
+                ctx.fillStyle = baseColor;
+                ctx.fillRect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                // блики
+                ctx.fillStyle = '#6caa5a';
+                ctx.fillRect(i * TILE_SIZE + 2, j * TILE_SIZE + 2, 4, 4);
             }
         }
-        for(let r of resources) {
-            ctx.fillStyle = r.type === 'wood' ? '#8B5A2B' : '#888';
-            ctx.fillRect(r.x*TILE_SIZE+5, r.y*TILE_SIZE+5, TILE_SIZE-10, TILE_SIZE-10);
-            ctx.fillStyle = r.type === 'wood' ? '#c97e3a' : '#aaa';
-            ctx.font = `${TILE_SIZE-12}px monospace`;
-            ctx.fillText(r.type === 'wood' ? '🪵' : '🪨', r.x*TILE_SIZE+10, r.y*TILE_SIZE+28);
+        
+        // Ресурсы (с тенью)
+        for (let r of resources) {
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = "#00000066";
+            if (r.type === 'wood') {
+                ctx.fillStyle = '#7a4a2a';
+                ctx.fillRect(r.x * TILE_SIZE + 6, r.y * TILE_SIZE + 8, TILE_SIZE - 12, TILE_SIZE - 14);
+                ctx.fillStyle = '#bd7a4a';
+                ctx.font = `${TILE_SIZE - 12}px monospace`;
+                ctx.fillText('🪵', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 30);
+            } else if (r.type === 'stone') {
+                ctx.fillStyle = '#6a6a6a';
+                ctx.fillRect(r.x * TILE_SIZE + 6, r.y * TILE_SIZE + 8, TILE_SIZE - 12, TILE_SIZE - 14);
+                ctx.fillStyle = '#bbbbbb';
+                ctx.fillText('🪨', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 30);
+            } else if (r.type === 'emerald') {
+                ctx.fillStyle = '#1f8a3a';
+                ctx.fillRect(r.x * TILE_SIZE + 8, r.y * TILE_SIZE + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                ctx.fillStyle = '#6eff8e';
+                ctx.font = 'bold 24px monospace';
+                ctx.fillText('💎', r.x * TILE_SIZE + 12, r.y * TILE_SIZE + 32);
+            }
         }
-        for(let w of walls) {
-            ctx.fillStyle = '#624c37';
-            ctx.fillRect(w.x*TILE_SIZE, w.y*TILE_SIZE, TILE_SIZE-1, TILE_SIZE-1);
-            ctx.fillStyle = '#b87c4f';
-            ctx.fillRect(w.x*TILE_SIZE+5, w.y*TILE_SIZE+5, TILE_SIZE-10, TILE_SIZE-10);
-            ctx.fillStyle = '#f5bc70';
-            ctx.font = 'bold 18px monospace';
-            ctx.fillText('🧱', w.x*TILE_SIZE+12, w.y*TILE_SIZE+28);
+        ctx.shadowBlur = 0;
+        
+        // Стены с градацией
+        for (let w of walls) {
+            if (w.type === 'emerald') {
+                ctx.fillStyle = '#2a9a4a';
+                ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2);
+                ctx.fillStyle = '#7affaa';
+                ctx.fillRect(w.x * TILE_SIZE + 6, w.y * TILE_SIZE + 6, TILE_SIZE - 14, TILE_SIZE - 14);
+                ctx.fillStyle = '#c8ffcf';
+                ctx.font = '20px monospace';
+                ctx.fillText('✨', w.x * TILE_SIZE + 14, w.y * TILE_SIZE + 30);
+            } else {
+                ctx.fillStyle = '#6b4c3a';
+                ctx.fillRect(w.x * TILE_SIZE, w.y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2);
+                ctx.fillStyle = '#b87c4a';
+                ctx.fillRect(w.x * TILE_SIZE + 5, w.y * TILE_SIZE + 5, TILE_SIZE - 12, TILE_SIZE - 12);
+                ctx.fillStyle = '#f5bc70';
+                ctx.fillText('🧱', w.x * TILE_SIZE + 14, w.y * TILE_SIZE + 28);
+            }
         }
-        for(let id in players) {
+        
+        // Игроки с крутой прорисовкой
+        for (let id in players) {
             let p = players[id];
             let x = p.x * TILE_SIZE, y = p.y * TILE_SIZE;
-            ctx.fillStyle = id === myId ? '#fff7b0' : '#ffaa66';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = "black";
+            
+            // Тело
+            ctx.fillStyle = id === myId ? '#f5dd8a' : '#e09a5a';
             ctx.beginPath();
-            ctx.arc(x+TILE_SIZE/2, y+TILE_SIZE/2, TILE_SIZE/2.5, 0, Math.PI*2);
+            ctx.ellipse(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 14, 16, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText(id === myId ? '😎' : '👤', x+12, y+28);
+            
+            // Доспехи/эффект силы
+            if (powerBuff && Date.now() < powerEndTime && id === myId) {
+                ctx.strokeStyle = '#ffdd88';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 19, 21, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Глаза
+            ctx.fillStyle = '#2f2a2a';
+            ctx.beginPath();
+            ctx.arc(x + TILE_SIZE / 2 - 5, y + TILE_SIZE / 2 - 3, 2.5, 0, Math.PI * 2);
+            ctx.arc(x + TILE_SIZE / 2 + 5, y + TILE_SIZE / 2 - 3, 2.5, 0, Math.PI * 2);
+            ctx.fill();
             ctx.fillStyle = 'white';
-            ctx.font = '10px monospace';
-            ctx.fillText(p.name || 'player', x+5, y-4);
+            ctx.beginPath();
+            ctx.arc(x + TILE_SIZE / 2 - 6, y + TILE_SIZE / 2 - 4, 1, 0, Math.PI * 2);
+            ctx.arc(x + TILE_SIZE / 2 + 4, y + TILE_SIZE / 2 - 4, 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.font = 'bold 13px monospace';
+            ctx.fillStyle = '#ffffffdd';
+            ctx.shadowBlur = 3;
+            ctx.fillText(p.name || 'воин', x + 6, y - 6);
         }
+        ctx.shadowBlur = 0;
         requestAnimationFrame(draw);
     }
+    
     draw();
+    
+    setInterval(() => {
+        if (powerBuff && Date.now() >= powerEndTime) {
+            powerBuff = false;
+            updateUI();
+        }
+    }, 500);
 </script>
 </body>
 </html>

@@ -2,253 +2,206 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Slize | 2D Online Survival</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slize - Dynast Style</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { width: 100vw; height: 100vh; overflow: hidden; font-family: 'Segoe UI', monospace; background: #0a1008; }
-        canvas { display: block; cursor: crosshair; image-rendering: pixelated; }
+        * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+        body { background:#0a0f08; font-family: 'Segoe UI', monospace; overflow:hidden; }
+        canvas { display:block; image-rendering:pixelated; background:#0f1a0f; }
 
         #mainMenu {
-            position: fixed; inset: 0; background: radial-gradient(ellipse at center, #0a2a0a 0%, #030803 100%);
-            z-index: 1000; display: flex; justify-content: center; align-items: center;
+            position: fixed; inset: 0; background: radial-gradient(circle at center, #1a2f1a, #050a05);
+            z-index: 1000; display: flex; align-items: center; justify-content: center; color: #fff;
         }
-        .menuContainer { text-align: center; animation: fadeInUp 0.8s ease; }
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        .gameTitle { font-size: 78px; font-weight: bold; color: #ffd966; text-shadow: 0 0 30px #ffaa33, 0 0 60px #ff8833; margin-bottom: 10px; letter-spacing: 8px; }
-        .gameSub { font-size: 20px; color: #aaffaa; margin-bottom: 40px; letter-spacing: 3px; }
-
+        .title { font-size: 82px; font-weight: bold; color: #ffdd88; text-shadow: 0 0 40px #ffaa00, 0 0 80px #ff5500; letter-spacing: 6px; }
+        .subtitle { font-size: 22px; color: #aaffaa; margin: 10px 0 40px; }
         .loginBox {
-            background: rgba(0,0,0,0.75); backdrop-filter: blur(20px); border-radius: 50px;
-            padding: 40px 50px; border: 3px solid #d4a547; min-width: 380px;
+            background: rgba(10,20,10,0.9); padding: 40px; border-radius: 20px; border: 3px solid #ffcc44;
+            box-shadow: 0 0 30px #ffaa00;
         }
-        .nickInput {
-            width: 100%; padding: 16px 24px; font-size: 18px; border-radius: 50px;
-            border: 2px solid #d4a547; background: rgba(20,25,15,0.95); color: #ffecb3;
-            text-align: center; margin-bottom: 20px; outline: none;
-        }
-        .playBtn {
-            background: linear-gradient(#4a7a3a, #3a6a2a); color: #ffecb3; border: none;
-            padding: 16px 40px; font-size: 26px; border-radius: 60px; cursor: pointer;
-            width: 100%; font-weight: bold; box-shadow: 0 0 20px #6a9a4a;
-        }
-        .playBtn:hover { transform: scale(1.05); background: linear-gradient(#5a8a4a, #4a7a3a); }
+        input { width: 320px; padding: 14px; font-size: 18px; border-radius: 50px; border: 2px solid #ffcc44; background:#112211; color:#ffddaa; text-align:center; }
+        button { margin-top:20px; width:100%; padding:16px; font-size:26px; background:#ff5500; color:white; border:none; border-radius:50px; cursor:pointer; font-weight:bold; }
+        button:hover { background:#ff7733; transform:scale(1.05); }
 
-        #hud {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); border-radius: 25px;
-            padding: 12px 30px; border: 2px solid #d4a547; display: none; gap: 25px; z-index: 100;
-        }
-        .stat { display: flex; align-items: center; gap: 10px; color: #ffdd99; font-weight: bold; font-size: 15px; }
-        .statBar { width: 160px; height: 14px; background: #220000; border-radius: 10px; overflow: hidden; border: 1px solid #550000; }
-        .statFill { height: 100%; transition: width 0.15s; }
+        #hud { position:fixed; bottom:15px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); padding:10px 25px; border-radius:30px; border:2px solid #ffcc44; display:none; gap:25px; z-index:100; }
+        .barContainer { display:flex; align-items:center; gap:8px; color:#ffdd99; font-weight:bold; }
+        .bar { width:180px; height:18px; background:#330000; border-radius:10px; overflow:hidden; }
+        .fill { height:100%; transition:width 0.2s; }
 
-        #levelBox, #onlineBox {
-            position: fixed; top: 20px; padding: 10px 18px; border-radius: 30px;
-            background: rgba(0,0,0,0.7); border: 2px solid #d4a547; color: #ffd966; font-weight: bold; z-index: 100;
-        }
-        #onlineBox { right: 20px; border-color: #4a7a3a; color: #7eff9e; }
-
-        #nightOverlay { position: fixed; inset: 0; background: #000; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 1.2s; }
+        #night { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:5; transition:opacity 1.5s; }
     </style>
 </head>
 <body>
+
 <div id="mainMenu">
-    <div class="menuContainer">
-        <div class="gameTitle">⚔️ SLIZE ⚔️</div>
-        <div class="gameSub">2D ONLINE SURVIVAL</div>
+    <div style="text-align:center">
+        <div class="title">SLIZE</div>
+        <div class="subtitle">2D SURVIVAL • DYNAST STYLE</div>
         <div class="loginBox">
-            <input type="text" id="nicknameInput" class="nickInput" placeholder="Твой никнейм" maxlength="16">
-            <button id="playGuestBtn" class="playBtn">▶ ИГРАТЬ</button>
+            <input id="nick" placeholder="Никнейм" maxlength="16" value="Slayer">
+            <button onclick="startGame()">▶ ИГРАТЬ</button>
         </div>
     </div>
 </div>
 
-<canvas id="gameCanvas"></canvas>
-<div id="nightOverlay"></div>
+<canvas id="canvas"></canvas>
+<div id="night"></div>
 
 <div id="hud">
-    <div class="stat">❤️ <div class="statBar"><div class="statFill" id="healthFill" style="background:#ff3333;width:100%"></div></div></div>
-    <div class="stat">🍖 <div class="statBar"><div class="statFill" id="hungerFill" style="background:#ffaa33;width:100%"></div></div></div>
-    <div class="stat">⚡ <div class="statBar"><div class="statFill" id="staminaFill" style="background:#44ddff;width:100%"></div></div></div>
+    <div class="barContainer">❤️ <div class="bar"><div class="fill" id="hp" style="background:#e00;width:100%"></div></div></div>
+    <div class="barContainer">🍖 <div class="bar"><div class="fill" id="hunger" style="background:#f80;width:100%"></div></div></div>
+    <div class="barContainer">⚡ <div class="bar"><div class="fill" id="stamina" style="background:#0cf;width:100%"></div></div></div>
 </div>
-
-<div id="levelBox">🏆 УРОВЕНЬ <span id="levelVal">1</span> (0 XP)</div>
-<div id="onlineBox">👥 <span id="onlineCount">0</span></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    const canvas = document.getElementById('gameCanvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    
-    let socket = null;
-    let myId = null;
-    let recipes = [];
-    let worldW = 200, worldH = 200;
+    let socket, myId, state = {}, camX = 0, camY = 0;
     const TILE = 48;
-    let state = { players: {}, resources: [], buildings: [], mobs: [] };
-    let camX = 0, camY = 0;
-    let keys = {};
+    let keys = {}, mouseX = 0, mouseY = 0;
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
     window.addEventListener('resize', resize);
     resize();
 
-    document.getElementById('playGuestBtn').onclick = () => {
-        const nick = document.getElementById('nicknameInput').value.trim() || `Slayer${Math.floor(Math.random()*999)}`;
-        
+    function startGame() {
+        const nick = document.getElementById('nick').value.trim() || "Slayer" + Math.floor(Math.random()*999);
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('hud').style.display = 'flex';
-        document.getElementById('levelBox').style.display = 'block';
-        document.getElementById('onlineBox').style.display = 'block';
 
-        socket = io();
-        
-        socket.on('init', (data) => {
+        socket = io("http://localhost:3000");   // ← поменяй если сервер на другом порту
+
+        socket.on('init', data => {
             myId = data.id;
-            worldW = data.worldW;
-            worldH = data.worldH;
-            recipes = data.recipes;
         });
 
-        socket.on('gameState', (newState) => {
-            state = newState;
+        socket.on('gameState', s => {
+            state = s;
             updateHUD();
-            updateNight();
         });
 
-        socket.on('onlineCount', (c) => document.getElementById('onlineCount').innerText = c);
-
-        // ← ИСПРАВЛЕНИЕ
-        socket.emit('login', { nickname: nick });
-    };
+        socket.on('onlineCount', c => console.log('Онлайн:', c));
+    }
 
     // Управление
     window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-    let mouseAngle = 0;
-    window.addEventListener('mousemove', (e) => {
-        if (!myId || !state.players[myId]) return;
-        const p = state.players[myId];
-        const px = p.x * TILE - camX;
-        const py = p.y * TILE - camY;
-        mouseAngle = Math.atan2(e.clientY - py, e.clientX - px);
-    });
-
-    window.addEventListener('mousedown', e => {
-        if (!socket || !myId) return;
-        if (e.button === 0) socket.emit('attack');
-    });
-    window.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+    window.addEventListener('mousedown', () => { if(socket && myId) socket.emit('attack'); });
 
     setInterval(() => {
         if (!socket || !myId) return;
         let dx = 0, dy = 0;
-        if (keys['w'] || keys['ц']) dy -= 1;
-        if (keys['s'] || keys['ы']) dy += 1;
-        if (keys['a'] || keys['ф']) dx -= 1;
-        if (keys['d'] || keys['в']) dx += 1;
+        if (keys['w'] || keys['ц']) dy = -1;
+        if (keys['s'] || keys['ы']) dy = 1;
+        if (keys['a'] || keys['ф']) dx = -1;
+        if (keys['d'] || keys['в']) dx = 1;
 
-        socket.emit('move', { dx, dy, angle: mouseAngle });
+        const p = state.players?.[myId];
+        if (p) {
+            const angle = Math.atan2(mouseY - (p.y * TILE - camY), mouseX - (p.x * TILE - camX));
+            socket.emit('move', {dx, dy, angle});
+        }
     }, 1000/30);
 
     function updateHUD() {
-        if (!myId || !state.players[myId]) return;
+        if (!myId || !state.players?.[myId]) return;
         const p = state.players[myId];
-        document.getElementById('healthFill').style.width = p.hp + '%';
-        document.getElementById('hungerFill').style.width = p.hunger + '%';
-        document.getElementById('staminaFill').style.width = (p.stamina || 100) + '%';
+        document.getElementById('hp').style.width = p.hp + '%';
+        document.getElementById('hunger').style.width = (p.hunger || 100) + '%';
+        document.getElementById('stamina').style.width = (p.stamina || 100) + '%';
     }
 
-    function updateNight() {
-        const t = Date.now() / 1000;
-        const night = (Math.sin(t / 70) + 1) / 2;
-        document.getElementById('nightOverlay').style.opacity = night * 0.65;
-    }
-
-    // ==================== УЛУЧШЕННЫЙ РЕНДЕР ====================
+    // ==================== РЕНДЕР ====================
     function draw() {
         requestAnimationFrame(draw);
-        if (!myId || !state.players[myId]) return;
+        if (!myId || !state.players?.[myId]) return;
 
         const p = state.players[myId];
-        camX += ((p.x * TILE - canvas.width/2) - camX) * 0.12;
-        camY += ((p.y * TILE - canvas.height/2) - camY) * 0.12;
+        camX += ((p.x * TILE - canvas.width/2) - camX) * 0.15;
+        camY += ((p.y * TILE - canvas.height/2) - camY) * 0.15;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.translate(-camX, -camY);
 
-        // Земля
-        const sx = Math.max(0, Math.floor(camX / TILE) - 2);
-        const sy = Math.max(0, Math.floor(camY / TILE) - 2);
-        const ex = Math.min(worldW, Math.ceil((camX + canvas.width) / TILE) + 2);
-        const ey = Math.min(worldH, Math.ceil((camY + canvas.height) / TILE) + 2);
+        // Земля + биомы
+        const startX = Math.max(0, Math.floor(camX/TILE)-2);
+        const startY = Math.max(0, Math.floor(camY/TILE)-2);
+        const endX = Math.min(200, Math.ceil((camX+canvas.width)/TILE)+2);
+        const endY = Math.min(200, Math.ceil((camY+canvas.height)/TILE)+2);
 
-        for (let x = sx; x < ex; x++) {
-            for (let y = sy; y < ey; y++) {
-                const biome = (x < 50 && y < 50) ? '#e8d4a0' : 
-                             (x > 150 && y > 150) ? '#e0f0ff' : 
-                             (x > 70 && x < 130 && y > 70 && y < 130) ? '#1e3a1a' : '#356b22';
-                ctx.fillStyle = (x + y) % 2 ? biome : '#2a5a1a';
-                ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+        for (let x = startX; x < endX; x++) {
+            for (let y = startY; y < endY; y++) {
+                let color = '#2a5a1a';
+                if (x < 50 && y < 50) color = '#c9b38a';           // пустыня
+                else if (x > 150 && y > 150) color = '#d0e0f0';   // снег
+                else if (x > 65 && x < 135 && y > 65 && y < 135) color = '#1e3f1a'; // лес
+
+                ctx.fillStyle = (x+y)%2 === 0 ? color : '#234d17';
+                ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
             }
         }
 
-        // Ресурсы, постройки, мобы, игроки (оставил твой код, но можешь дальше улучшать)
-        // ... (я оставил твой рендер ресурсов/мобов/игроков как был, он нормальный)
+        // Ресурсы (простая версия)
+        (state.resources || []).forEach(r => {
+            const rx = r.x * TILE + TILE/2;
+            const ry = r.y * TILE + TILE/2;
+            if (r.type === 'tree') {
+                ctx.fillStyle = '#3a2a1a'; ctx.fillRect(rx-6, ry-8, 12, 28);
+                ctx.fillStyle = '#0a5a0a'; ctx.beginPath(); ctx.arc(rx, ry-18, 18, 0, Math.PI*2); ctx.fill();
+            } else if (r.type === 'stone') {
+                ctx.fillStyle = '#666'; ctx.beginPath(); ctx.arc(rx, ry, 18, 0, Math.PI*2); ctx.fill();
+            }
+        });
 
-        // 5. Игроки (улучшенная версия)
-        for (let id in state.players) {
-            const pl = state.players[id];
+        // Игроки
+        Object.values(state.players || {}).forEach(pl => {
             const px = pl.x * TILE;
             const py = pl.y * TILE;
-            const isMe = id === myId;
+            const isMe = pl.id === myId;
 
             ctx.save();
             ctx.translate(px, py);
 
             // Тень
-            ctx.fillStyle = 'rgba(0,0,0,0.35)';
-            ctx.beginPath(); ctx.ellipse(0, 18, 14, 6, 0, 0, Math.PI*2); ctx.fill();
-
-            // Ноги
-            const leg = Math.sin(pl.moveAnim || 0) * 6;
-            ctx.fillStyle = '#2a1f14';
-            ctx.fillRect(-6, 8, 5, 14 + leg);
-            ctx.fillRect(2, 8, 5, 14 - leg);
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.ellipse(0, 18, 14, 6, 0, 0, Math.PI*2); ctx.fill();
 
             // Тело
-            ctx.fillStyle = isMe ? '#ffcc77' : '#e0a060';
-            ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = isMe ? '#ffcc77' : '#cc9966';
+            ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
 
             // Голова
             ctx.fillStyle = '#ffdbac';
-            ctx.beginPath(); ctx.arc(0, -6, 9, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, -8, 9, 0, Math.PI*2); ctx.fill();
 
             // Оружие
             ctx.save();
             ctx.rotate(pl.angle || 0);
             ctx.fillStyle = '#555';
-            ctx.fillRect(12, -3, 18, 6);
+            ctx.fillRect(12, -4, 20, 8);
             ctx.restore();
 
-            // Имя + HP
+            // Имя
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 13px monospace';
             ctx.textAlign = 'center';
-            ctx.fillText(pl.name, 0, -28);
-
-            ctx.fillStyle = '#000';
-            ctx.fillRect(-16, -22, 32, 4);
-            ctx.fillStyle = pl.hp > 40 ? '#22ff22' : '#ff4444';
-            ctx.fillRect(-16, -22, 32 * (pl.hp / 100), 4);
+            ctx.fillText(pl.name || 'Player', 0, -32);
 
             ctx.restore();
-        }
+        });
 
         ctx.restore();
+
+        // Ночь
+        const nightLevel = (Math.sin(Date.now()/70000) + 1) / 2 * 0.7;
+        document.getElementById('night').style.opacity = nightLevel;
     }
 
     draw();

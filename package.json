@@ -1,13 +1,14 @@
 {
-  "name": "slize-mega",
-  "version": "4.0.0",
-  "description": "Slize | Огромный мир, тотемы, биомы, ТНТ",
+  "name": "slize",
+  "version": "1.0.0",
+  "description": "Slize online game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.6.1"
+    "socket.io": "^4.6.1",
+    "pg": "^8.11.3"
   }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "slize-dynast",
-  "version": "3.0.0",
-  "description": "Slize | Полноценная 2D онлайн игра",
+  "name": "slize-online",
+  "version": "4.0.0",
+  "description": "Slize | 2D Online Survival",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

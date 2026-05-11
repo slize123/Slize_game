@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Slize | 2D онлайн выживание</title>
+    <title>Slize | Онлайн игра как Dynast.io</title>
     <style>
         * {
             margin: 0;
@@ -12,215 +12,125 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0a2a0a, #0a1a0a);
+            background: #0a1f0a;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: 'Segoe UI', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             overflow: hidden;
         }
 
         #gameContainer {
             position: relative;
-            border-radius: 20px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 0 4px #d4a547, 0 20px 40px rgba(0,0,0,0.6);
+            box-shadow: 0 0 0 4px #c9a03d, 0 20px 40px rgba(0,0,0,0.5);
         }
 
         canvas {
             display: block;
             cursor: crosshair;
-            background: #2d5a2a;
+            background: #2a5a2a;
         }
 
-        /* Панель статуса (ХП и стамина под игроком) */
-        #playerStats {
+        /* Интерфейс как в Dynast */
+        #statsPanel {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 15px;
+            left: 15px;
             background: rgba(0,0,0,0.75);
             backdrop-filter: blur(8px);
-            padding: 8px 20px;
-            border-radius: 40px;
+            padding: 8px 16px;
+            border-radius: 30px;
             display: flex;
-            gap: 30px;
+            gap: 20px;
             z-index: 100;
-            font-family: monospace;
             font-weight: bold;
-            border: 1px solid #d4a547;
-            pointer-events: none;
-        }
-
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #ffdd99;
-            font-size: 16px;
-        }
-
-        .statBar {
-            width: 120px;
-            height: 12px;
-            background: #330000;
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        .statFill {
-            height: 100%;
-            transition: width 0.1s linear;
-        }
-
-        .healthFill {
-            background: #ff4444;
-        }
-
-        .staminaFill {
-            background: #44ff44;
-        }
-
-        #staminaText {
-            font-size: 12px;
-            color: #aaffaa;
-        }
-
-        /* Инвентарь (Tab) */
-        #inventoryPanel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            width: 500px;
-            background: rgba(10,10,5,0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            border: 2px solid #d4a547;
-            padding: 20px;
-            z-index: 200;
-            transition: transform 0.2s ease;
-            font-family: monospace;
-            pointer-events: auto;
-        }
-
-        #inventoryPanel.open {
-            transform: translate(-50%, -50%) scale(1);
-        }
-
-        #inventoryPanel h3 {
-            color: #ffd966;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .invGrid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-
-        .invSlot {
-            background: rgba(0,0,0,0.6);
-            border: 1px solid #8a6a3a;
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            color: #ffecb3;
             font-size: 14px;
+            color: #ffdd99;
+            border: 1px solid #dbb45c;
         }
 
-        .invSlot .icon {
-            font-size: 28px;
+        #onlineBox {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 6px 14px;
+            border-radius: 30px;
+            color: #88ff88;
+            font-weight: bold;
+            z-index: 100;
         }
 
-        /* Панель крафта (C) */
-        #craftPanel {
+        #inventoryPanel, #craftPanel {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 550px;
-            background: rgba(10,10,5,0.95);
-            backdrop-filter: blur(20px);
+            background: #0a0a05f0;
+            backdrop-filter: blur(15px);
             border-radius: 24px;
-            border: 2px solid #6ab04c;
+            border: 2px solid #c9a03d;
             padding: 20px;
             z-index: 200;
-            transition: transform 0.2s ease;
+            transition: transform 0.1s ease;
+            min-width: 420px;
             font-family: monospace;
-            max-height: 80vh;
-            overflow-y: auto;
-            pointer-events: auto;
+            color: #ffecb3;
         }
 
-        #craftPanel.open {
+        #inventoryPanel.open, #craftPanel.open {
             transform: translate(-50%, -50%) scale(1);
-        }
-
-        .craftGrid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .craftItem {
-            background: #2a2a1a;
-            border-radius: 16px;
-            padding: 12px;
-            cursor: pointer;
-            transition: 0.05s linear;
-            border: 1px solid #6a8a4a;
-        }
-
-        .craftItem:hover {
-            background: #4a6a2a;
-            transform: translateX(-2px);
         }
 
         .closePanel {
             position: absolute;
-            top: 10px;
-            right: 20px;
+            top: 8px;
+            right: 18px;
             cursor: pointer;
             font-size: 24px;
-            color: #ffaa66;
         }
 
-        /* Онлайн счётчик */
-        #onlineBox {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            padding: 8px 16px;
-            border-radius: 40px;
-            color: #7eff9e;
-            font-weight: bold;
-            font-family: monospace;
-            z-index: 100;
-            font-size: 14px;
+        .gridList {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+            max-height: 60vh;
+            overflow-y: auto;
         }
 
-        /* Меню входа */
+        .itemSlot {
+            background: #2a2a1a;
+            border-radius: 14px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #8a6a3a;
+            cursor: pointer;
+        }
+
+        .itemSlot:hover {
+            background: #4a6a2a;
+            transform: translateX(-2px);
+        }
+
         #joinScreen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle, #0a2f0a, #051005);
+            background: radial-gradient(circle, #0a2f0a, #030803);
             z-index: 1000;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: monospace;
         }
 
         .serverCard {
-            background: rgba(0,0,0,0.85);
+            background: #000000cc;
             backdrop-filter: blur(20px);
             border-radius: 48px;
             padding: 40px;
@@ -246,345 +156,168 @@
             margin-top: 20px;
             font-weight: bold;
         }
-
-        #closeInv, #closeCraft {
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <div id="joinScreen">
-        <div class="serverCard">
-            <h1>⚔️ SLIZE ⚔️</h1>
-            <div style="font-size: 22px; margin: 15px 0; color:#b8ffb0;">🇪🇺 EU Slize</div>
-            <button class="playBtn" id="playBtn">▶ ИГРАТЬ</button>
-            <div id="onlineCountDisplay" style="margin-top: 20px; color:#aaa;">👥 онлайн: --</div>
-        </div>
+<div id="joinScreen">
+    <div class="serverCard">
+        <h1>⚔️ SLIZE ⚔️</h1>
+        <div style="font-size: 22px; margin: 15px 0; color:#b8ffb0;">EU Slize #1</div>
+        <button class="playBtn" id="playBtn">▶ ИГРАТЬ</button>
+        <div id="onlineCountDisplay" style="margin-top: 20px; color:#aaa;">👥 онлайн: --</div>
     </div>
+</div>
 
-    <div id="gameContainer" style="display: none;">
-        <canvas id="gameCanvas" width="1300" height="750"></canvas>
-        <div id="playerStats">
-            <div class="stat">
-                ❤️ ХП
-                <div class="statBar"><div class="statFill healthFill" id="healthFillBar" style="width: 100%"></div></div>
-            </div>
-            <div class="stat">
-                ⚡ СТАМИНА
-                <div class="statBar"><div class="statFill staminaFill" id="staminaFillBar" style="width: 100%"></div></div>
-                <span id="staminaText">100</span>
-            </div>
-        </div>
-        <div id="onlineBox">👥 <span id="playersOnline">1</span></div>
+<div id="gameContainer" style="display: none;">
+    <canvas id="gameCanvas" width="1300" height="750"></canvas>
+    <div id="statsPanel">
+        <div>❤️ <span id="healthVal">100</span> / 100</div>
+        <div>⚡ <span id="staminaVal">100</span></div>
+        <div>🪙 <span id="goldVal">0</span></div>
     </div>
+    <div id="onlineBox">👥 <span id="playersOnline">1</span></div>
+</div>
 
-    <div id="inventoryPanel">
-        <div class="closePanel" id="closeInv">✖</div>
-        <h3>📦 ИНВЕНТАРЬ [TAB]</h3>
-        <div class="invGrid" id="invGrid"></div>
-    </div>
+<div id="inventoryPanel">
+    <div class="closePanel" id="closeInv">✖</div>
+    <h3>📦 ИНВЕНТАРЬ [TAB]</h3>
+    <div class="gridList" id="invGrid"></div>
+</div>
 
-    <div id="craftPanel">
-        <div class="closePanel" id="closeCraft">✖</div>
-        <h3>🔨 КРАФТ [C]</h3>
-        <div class="craftGrid" id="craftGrid"></div>
-    </div>
+<div id="craftPanel">
+    <div class="closePanel" id="closeCraft">✖</div>
+    <h3>🔨 КРАФТ [C]</h3>
+    <div class="gridList" id="craftGrid"></div>
+</div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        // ------ НАСТРОЙКИ ------
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const TILE_SIZE = 48;
+    let myId = null;
+    let players = {};
+    let walls = [];
+    let resources = [];
+    
+    let inventory = { wood: 5, stone: 3, gold: 0, crystal: 0, cactus: 0, fern: 0, timerite: 0, meat: 0, feather: 0, dust: 0, web: 0, fur: 0, bone: 0 };
+    let myHealth = 100;
+    let stamina = 100;
+    let currentWeapon = { name: 'Рука', damage: 8, staminaCost: 10 };
+    let attackCooldown = 0;
+    let cameraX = 0, cameraY = 0;
+    let myX = 0, myY = 0;
+    
+    const keys = { w: false, s: false, a: false, d: false };
+    const socket = io();
+    
+    // Отрисовка (стиль Dynast.io)
+    function drawResource(ctx, type, x, y) {
+        ctx.shadowBlur = 4;
+        if (type === 'wood') { ctx.fillStyle = '#6b4a2a'; ctx.fillRect(x+10, y+12, 10, 28); ctx.fillStyle = '#3c9a2a'; ctx.beginPath(); ctx.arc(x+24, y+12, 12, 0, Math.PI*2); ctx.fill(); }
+        else if (type === 'stone') { ctx.fillStyle = '#777'; ctx.fillRect(x+10, y+14, 28, 24); ctx.fillStyle = '#aaa'; ctx.fillRect(x+14, y+18, 20, 16); }
+        else if (type === 'gold') { ctx.fillStyle = '#d4af37'; ctx.fillRect(x+8, y+12, 32, 28); ctx.fillStyle = '#ffd700'; ctx.fillText('⭐', x+18, y+32); }
+        else if (type === 'crystal') { ctx.fillStyle = '#88aaff'; ctx.fillRect(x+10, y+10, 28, 30); ctx.fillStyle = '#ccddff'; ctx.fillText('❄️', x+18, y+32); }
+        else if (type === 'cactus') { ctx.fillStyle = '#3a8a2a'; ctx.fillRect(x+16, y+8, 16, 36); ctx.fillStyle = '#aaffaa'; for(let i=0;i<3;i++) ctx.fillRect(x+20+i*2, y+20, 4, 8); }
+        else if (type === 'fern') { ctx.fillStyle = '#4aaa3a'; ctx.beginPath(); ctx.moveTo(x+24, y+10); ctx.lineTo(x+14, y+35); ctx.lineTo(x+34, y+35); ctx.fill(); }
+        else if (type === 'timerite') { ctx.fillStyle = '#aa4a6a'; ctx.fillRect(x+10, y+12, 28, 26); ctx.fillStyle = '#ff88aa'; ctx.fillText('💎', x+18, y+32); }
+        ctx.shadowBlur = 0;
+    }
+    
+    function drawPlayer(ctx, x, y, name, health, isMe) {
+        ctx.shadowBlur = 5;
+        ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
+        ctx.beginPath(); ctx.ellipse(x+24, y+20, 14, 18, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#4a2a1a'; ctx.fillRect(x+18, y+28, 12, 16);
+        ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.arc(x+18, y+15, 3, 0, Math.PI*2); ctx.arc(x+30, y+15, 3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x+17, y+14, 1.2, 0, Math.PI*2); ctx.arc(x+29, y+14, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#000000cc'; ctx.font = 'bold 12px monospace'; ctx.fillText(name, x+12, y-6);
+        ctx.fillStyle = '#aa0000'; ctx.fillRect(x+8, y-10, 40, 6);
+        ctx.fillStyle = '#00aa00'; ctx.fillRect(x+8, y-10, 40 * (health/100), 6);
+        ctx.shadowBlur = 0;
+    }
+    
+    function updateUI() {
+        document.getElementById('healthVal').innerText = myHealth;
+        document.getElementById('staminaVal').innerText = Math.floor(stamina);
+        document.getElementById('playersOnline').innerText = Object.keys(players).length;
+        let gold = inventory.gold || 0;
+        document.getElementById('goldVal').innerText = gold;
+        const invGrid = document.getElementById('invGrid');
+        if(invGrid) invGrid.innerHTML = Object.entries(inventory).map(([k,v]) => `<div class="itemSlot">${k}: ${v}</div>`).join('');
+    }
+    
+    function attack() {
+        if(attackCooldown > 0 || stamina < currentWeapon.staminaCost) return;
+        stamina -= currentWeapon.staminaCost;
+        attackCooldown = 12;
+        socket.emit('attack', { damage: currentWeapon.damage });
+        updateUI();
+    }
+    
+    setInterval(() => { if(stamina < 100) stamina = Math.min(100, stamina + 0.7); attackCooldown = Math.max(0, attackCooldown-1); updateUI(); }, 100);
+    
+    window.addEventListener('keydown', (e) => {
+        let k = e.key.toLowerCase();
+        if(keys.hasOwnProperty(k)) keys[k] = true;
+        if(k === ' ' || k === 'space') { e.preventDefault(); attack(); }
+        if(k === 'tab') { e.preventDefault(); document.getElementById('inventoryPanel').classList.toggle('open'); }
+        if(k === 'c') { e.preventDefault(); document.getElementById('craftPanel').classList.toggle('open'); }
+    });
+    window.addEventListener('keyup', (e) => { let k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = false; });
+    
+    document.getElementById('closeInv').onclick = () => document.getElementById('inventoryPanel').classList.remove('open');
+    document.getElementById('closeCraft').onclick = () => document.getElementById('craftPanel').classList.remove('open');
+    
+    setInterval(() => {
+        let dx = (keys.d?1:0)-(keys.a?1:0), dy = (keys.s?1:0)-(keys.w?1:0);
+        if(dx !== 0 || dy !== 0) socket.emit('move', { dx, dy });
+    }, 50);
+    
+    socket.on('init', (data) => {
+        myId = data.id; myX = data.x; myY = data.y; inventory = data.inventory; myHealth = data.health;
+        updateUI();
+        document.getElementById('joinScreen').style.display = 'none';
+        document.getElementById('gameContainer').style.display = 'block';
+        document.getElementById('onlineCountDisplay').innerText = `👥 онлайн: ${data.online}`;
         
-        let myId = null;
-        let players = {};
-        let walls = [];
-        let resources = [];
-        let animals = [];
-        
-        // Инвентарь
-        let inventory = { wood: 8, stone: 4, iron: 0, emerald: 0, fuel: 1 };
-        
-        // Характеристики
-        let myHealth = 100;
-        let maxHealth = 100;
-        let stamina = 100;
-        let maxStamina = 100;
-        let currentWeapon = { name: 'Кулак', damage: 8, staminaCost: 12 };
-        
-        let attacking = false;
-        let attackCooldown = 0;
-        
-        let cameraX = 0, cameraY = 0;
-        let myX = 0, myY = 0;
-        
-        const TILE_SIZE = 48;
-        const WORLD_W = 35;
-        const WORLD_H = 25;
-        
-        // Управление
-        const keys = { w: false, s: false, a: false, d: false };
-        
-        // Сокет
-        const socket = io();
-        
-        // ----- ОТРИСОВКА СПРАЙТОВ (красиво) -----
-        function drawSprite(ctx, type, x, y, direction = 'down') {
-            const size = TILE_SIZE - 4;
-            if (type === 'player') {
-                // Человек красиво
-                ctx.shadowBlur = 6;
-                ctx.fillStyle = '#e0aa7a';
-                ctx.beginPath();
-                ctx.ellipse(x + TILE_SIZE/2, y + TILE_SIZE/2 - 6, 12, 14, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillStyle = '#4a2a1a';
-                ctx.fillRect(x + TILE_SIZE/2 - 6, y + TILE_SIZE/2 - 2, 12, 16);
-                ctx.fillStyle = '#2a2a2a';
-                ctx.beginPath();
-                ctx.arc(x + TILE_SIZE/2 - 4, y + TILE_SIZE/2 - 8, 2.5, 0, Math.PI*2);
-                ctx.arc(x + TILE_SIZE/2 + 4, y + TILE_SIZE/2 - 8, 2.5, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillStyle = '#ffaa66';
-                ctx.font = `${TILE_SIZE-10}px monospace`;
-                ctx.fillText('⚔️', x + TILE_SIZE/2 - 8, y + TILE_SIZE/2 + 8);
-            } else if (type === 'deer') {
-                ctx.fillStyle = '#bb9966';
-                ctx.beginPath();
-                ctx.ellipse(x + TILE_SIZE/2, y + TILE_SIZE/2, 10, 12, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillStyle = '#886633';
-                ctx.fillText('🦌', x + TILE_SIZE/2 - 6, y + TILE_SIZE/2 + 4);
-            } else if (type === 'wolf') {
-                ctx.fillStyle = '#886666';
-                ctx.beginPath();
-                ctx.ellipse(x + TILE_SIZE/2, y + TILE_SIZE/2, 10, 12, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillText('🐺', x + TILE_SIZE/2 - 6, y + TILE_SIZE/2 + 4);
-            } else if (type === 'bear') {
-                ctx.fillStyle = '#8a5a3a';
-                ctx.beginPath();
-                ctx.ellipse(x + TILE_SIZE/2, y + TILE_SIZE/2, 14, 16, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillText('🐻', x + TILE_SIZE/2 - 8, y + TILE_SIZE/2 + 4);
-            }
-            ctx.shadowBlur = 0;
-        }
-        
-        function drawResource(ctx, type, x, y) {
-            if (type === 'wood') {
-                ctx.fillStyle = '#6b4a2a';
-                ctx.fillRect(x+8, y+12, 10, 28);
-                ctx.fillStyle = '#3c9a2a';
-                ctx.beginPath();
-                ctx.arc(x+TILE_SIZE/2, y+12, 12, 0, Math.PI*2);
-                ctx.fill();
-            } else if (type === 'stone') {
-                ctx.fillStyle = '#777';
-                ctx.fillRect(x+10, y+14, 26, 22);
-            } else if (type === 'emerald') {
-                ctx.fillStyle = '#2aff6a';
-                ctx.fillRect(x+12, y+14, 22, 20);
-                ctx.fillStyle = '#aaffcc';
-                ctx.fillText('💎', x+18, y+32);
-            } else if (type === 'barrel') {
-                ctx.fillStyle = '#aa5a2a';
-                ctx.fillRect(x+10, y+12, 28, 30);
-                ctx.fillStyle = '#ffaa66';
-                ctx.fillText('🛢️', x+16, y+34);
-            }
-        }
-        
-        function drawWall(x, y, type) {
-            if (type === 'normal') {
-                ctx.fillStyle = '#9a7a4a';
-                ctx.fillRect(x, y, TILE_SIZE-2, TILE_SIZE-2);
-                ctx.fillStyle = '#c9a05c';
-                ctx.fillRect(x+5, y+5, TILE_SIZE-12, TILE_SIZE-12);
-            } else {
-                ctx.fillStyle = '#2a9a4a';
-                ctx.fillRect(x, y, TILE_SIZE-2, TILE_SIZE-2);
-                ctx.fillStyle = '#7affaa';
-                ctx.fillRect(x+5, y+5, TILE_SIZE-12, TILE_SIZE-12);
-            }
-        }
-        
-        // Интерфейс
-        function updateUI() {
-            document.getElementById('healthFillBar').style.width = (myHealth / maxHealth * 100) + '%';
-            document.getElementById('staminaFillBar').style.width = (stamina / maxStamina * 100) + '%';
-            document.getElementById('staminaText').innerText = Math.floor(stamina);
-            document.getElementById('playersOnline').innerText = Object.keys(players).length;
-            // Обновление инвентаря в панели
-            const invGrid = document.getElementById('invGrid');
-            invGrid.innerHTML = '';
-            for (let [res, count] of Object.entries(inventory)) {
-                let icon = '🪵';
-                if (res === 'stone') icon = '🪨';
-                if (res === 'iron') icon = '⛏️';
-                if (res === 'emerald') icon = '💎';
-                if (res === 'fuel') icon = '🛢️';
-                invGrid.innerHTML += `<div class="invSlot"><div class="icon">${icon}</div>${res}: ${count}</div>`;
-            }
-        }
-        
-        // Крафт список
-        const craftRecipes = [
-            { name: '🗡️ Деревянный меч', req: { wood: 10 }, resultWeapon: { name: 'Меч', damage: 14, staminaCost: 12 } },
-            { name: '🪓 Каменный топор', req: { stone: 8 }, resultWeapon: { name: 'Топор', damage: 18, staminaCost: 14 } },
-            { name: '⛏️ Железная кирка', req: { iron: 6 }, resultWeapon: { name: 'Кирка', damage: 22, staminaCost: 16 } },
-            { name: '⛽ Бензопила', req: { wood: 8, iron: 3, fuel: 2 }, resultWeapon: { name: 'Бензопила', damage: 35, staminaCost: 20 } },
-            { name: '🏹 Арбалет', req: { wood: 12, iron: 5 }, resultWeapon: { name: 'Арбалет', damage: 28, staminaCost: 18 } },
-            { name: '🪔 Тотем', req: { stone: 15, emerald: 3 }, resultSpecial: 'totem' }
+        const craftList = [
+            { name: 'Каменная кирка', req: { stone: 10 }, weapon: { name: 'Кирка', damage: 14, staminaCost: 12 } },
+            { name: 'Золотая кирка', req: { gold: 8 }, weapon: { name: 'Золотая кирка', damage: 20, staminaCost: 14 } },
+            { name: 'Кристальная кирка', req: { crystal: 6 }, weapon: { name: 'Кристальная кирка', damage: 28, staminaCost: 16 } },
+            { name: 'Деревянный меч', req: { wood: 12 }, weapon: { name: 'Меч', damage: 18, staminaCost: 13 } },
+            { name: 'Арбалет', req: { wood: 15, stone: 5 }, weapon: { name: 'Арбалет', damage: 26, staminaCost: 18 } }
         ];
-        
-        function openCraft() {
-            const craftGrid = document.getElementById('craftGrid');
-            craftGrid.innerHTML = '';
-            craftRecipes.forEach(rec => {
-                const div = document.createElement('div');
-                div.className = 'craftItem';
-                let reqText = '';
-                for (let [r, val] of Object.entries(rec.req)) reqText += `${r}:${val} `;
-                div.innerHTML = `${rec.name}<br><span style="font-size:10px;">${reqText}</span>`;
-                div.onclick = () => socket.emit('craft', { recipe: rec });
-                craftGrid.appendChild(div);
-            });
-            document.getElementById('craftPanel').classList.add('open');
-        }
-        
-        // Атака
-        function attack() {
-            if (attackCooldown > 0 || stamina < currentWeapon.staminaCost) return;
-            stamina = Math.max(0, stamina - currentWeapon.staminaCost);
-            attackCooldown = 12;
-            attacking = true;
-            socket.emit('attack', { damage: currentWeapon.damage });
-            setTimeout(() => { attacking = false; }, 200);
-            updateUI();
-        }
-        
-        // Восстановление стамины
-        setInterval(() => {
-            if (stamina < maxStamina) stamina = Math.min(maxStamina, stamina + 0.8);
-            updateUI();
-            if (attackCooldown > 0) attackCooldown--;
-        }, 100);
-        
-        // Управление
-        window.addEventListener('keydown', (e) => {
-            const k = e.key.toLowerCase();
-            if (keys.hasOwnProperty(k)) keys[k] = true;
-            if (k === ' ' || k === 'space') { e.preventDefault(); attack(); }
-            if (k === 'tab') { e.preventDefault(); document.getElementById('inventoryPanel').classList.toggle('open'); }
-            if (k === 'c') { e.preventDefault(); openCraft(); }
+        const craftDiv = document.getElementById('craftGrid');
+        craftDiv.innerHTML = craftList.map(c => `<div class="itemSlot" data-req='${JSON.stringify(c.req)}' data-wep='${JSON.stringify(c.weapon)}'>${c.name}</div>`).join('');
+        document.querySelectorAll('#craftGrid .itemSlot').forEach(el => {
+            el.onclick = () => socket.emit('craft', { req: JSON.parse(el.dataset.req), weapon: JSON.parse(el.dataset.wep) });
         });
-        window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if (keys.hasOwnProperty(k)) keys[k] = false; });
-        
-        document.getElementById('closeInv').onclick = () => document.getElementById('inventoryPanel').classList.remove('open');
-        document.getElementById('closeCraft').onclick = () => document.getElementById('craftPanel').classList.remove('open');
-        
-        // Сокеты
-        socket.on('init', (data) => {
-            myId = data.id;
-            myX = data.x;
-            myY = data.y;
-            inventory = data.inventory;
-            myHealth = data.health;
-            stamina = 100;
-            updateUI();
-            document.getElementById('joinScreen').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'block';
-            document.getElementById('onlineCountDisplay').innerText = `👥 онлайн: ${data.online}`;
-        });
-        
-        socket.on('updatePlayers', (newPlayers) => { players = newPlayers; });
-        socket.on('updateWalls', (newWalls) => { walls = newWalls; });
-        socket.on('updateResources', (newRes) => { resources = newRes; });
-        socket.on('updateAnimals', (newAnimals) => { animals = newAnimals; });
-        
-        socket.on('playerUpdate', (data) => {
-            if (data.id === myId) {
-                inventory = data.inventory;
-                myHealth = data.health;
-                updateUI();
+    });
+    
+    socket.on('updatePlayers', (data) => { players = data; });
+    socket.on('updateWalls', (data) => { walls = data; });
+    socket.on('updateResources', (data) => { resources = data; });
+    socket.on('playerUpdate', (data) => { if(data.id === myId) { inventory = data.inventory; myHealth = data.health; updateUI(); } });
+    socket.on('attackEffect', (data) => { if(data.target === myId) myHealth = data.newHealth; updateUI(); });
+    
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if(players[myId]) { myX = players[myId].x; myY = players[myId].y; cameraX = myX*TILE_SIZE - canvas.width/2; cameraY = myY*TILE_SIZE - canvas.height/2; }
+        for(let i=0;i<35;i++) for(let j=0;j<25;j++) {
+            let x = i*TILE_SIZE - cameraX, y = j*TILE_SIZE - cameraY;
+            if(x+TILE_SIZE>0 && x<canvas.width && y+TILE_SIZE>0 && y<canvas.height) {
+                ctx.fillStyle = (i+j)%2===0 ? '#3c7a3a' : '#4a8a42';
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
             }
-        });
-        
-        socket.on('attackEffect', (data) => {
-            if (data.target === myId) myHealth = data.newHealth;
-            updateUI();
-        });
-        
-        // Движение
-        function sendMove() {
-            let dx = 0, dy = 0;
-            if (keys.w) dy -= 1;
-            if (keys.s) dy += 1;
-            if (keys.a) dx -= 1;
-            if (keys.d) dx += 1;
-            if (dx !== 0 || dy !== 0) socket.emit('move', { dx, dy });
         }
-        setInterval(sendMove, 50);
-        
-        // Рендер мира
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Камера
-            if (players[myId]) {
-                myX = players[myId].x;
-                myY = players[myId].y;
-                cameraX = myX * TILE_SIZE - canvas.width/2;
-                cameraY = myY * TILE_SIZE - canvas.height/2;
-            }
-            
-            for (let i = 0; i < WORLD_W; i++) {
-                for (let j = 0; j < WORLD_H; j++) {
-                    let x = i*TILE_SIZE - cameraX;
-                    let y = j*TILE_SIZE - cameraY;
-                    if (x + TILE_SIZE > 0 && x < canvas.width && y + TILE_SIZE > 0 && y < canvas.height) {
-                        ctx.fillStyle = (i+j)%2 === 0 ? '#3c7a3a' : '#4a8a42';
-                        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                    }
-                }
-            }
-            
-            // Ресурсы
-            for (let r of resources) {
-                let x = r.x*TILE_SIZE - cameraX, y = r.y*TILE_SIZE - cameraY;
-                drawResource(ctx, r.type, x, y);
-            }
-            // Стены
-            for (let w of walls) {
-                let x = w.x*TILE_SIZE - cameraX, y = w.y*TILE_SIZE - cameraY;
-                drawWall(x, y, w.type);
-            }
-            // Животные
-            for (let a of animals) {
-                let x = a.x*TILE_SIZE - cameraX, y = a.y*TILE_SIZE - cameraY;
-                drawSprite(ctx, a.type, x, y);
-            }
-            // Игроки
-            for (let id in players) {
-                let p = players[id];
-                let x = p.x*TILE_SIZE - cameraX, y = p.y*TILE_SIZE - cameraY;
-                drawSprite(ctx, 'player', x, y);
-                ctx.fillStyle = '#ffffffcc';
-                ctx.font = '12px monospace';
-                ctx.fillText(p.name || 'воин', x+10, y-6);
-                // Полоска хп над игроком
-                ctx.fillStyle = '#aa0000';
-                ctx.fillRect(x+8, y-12, 40, 6);
-                ctx.fillStyle = '#00aa00';
-                ctx.fillRect(x+8, y-12, 40 * (p.health/100), 6);
-            }
-            requestAnimationFrame(draw);
-        }
-        draw();
-        
-        document.getElementById('playBtn').onclick = () => {
-            socket.emit('joinGame');
-        };
-    </script>
+        for(let r of resources) { let x = r.x*TILE_SIZE - cameraX, y = r.y*TILE_SIZE - cameraY; drawResource(ctx, r.type, x, y); }
+        for(let w of walls) { let x = w.x*TILE_SIZE - cameraX, y = w.y*TILE_SIZE - cameraY; ctx.fillStyle = '#9a7a4a'; ctx.fillRect(x, y, TILE_SIZE-2, TILE_SIZE-2); }
+        for(let id in players) { let p = players[id]; let x = p.x*TILE_SIZE - cameraX, y = p.y*TILE_SIZE - cameraY; drawPlayer(ctx, x, y, p.name || 'Slizer', p.health, id === myId); }
+        requestAnimationFrame(draw);
+    }
+    draw();
+    document.getElementById('playBtn').onclick = () => socket.emit('joinGame');
+</script>
 </body>
 </html>

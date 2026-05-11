@@ -12,7 +12,6 @@ app.use(express.static(path.join(__dirname)));
 // НАСТРОЙКИ МИРА
 const WORLD_W = 200;
 const WORLD_H = 200;
-const TICK_RATE = 60;
 const TILE = 48;
 
 let players = {};
@@ -23,27 +22,29 @@ let nextId = 1;
 
 // РЕЦЕПТЫ КРАФТА
 const recipes = [
-    { name: 'Деревянный меч', result: 'wood_sword', req: [{ item: 'wood', count: 10 }] },
-    { name: 'Кирка', result: 'pickaxe', req: [{ item: 'wood', count: 5 }, { item: 'stone', count: 5 }] },
-    { name: 'Стена', result: 'wall', req: [{ item: 'wood', count: 5 }] },
-    { name: 'Костёр', result: 'campfire', req: [{ item: 'wood', count: 8 }, { item: 'stone', count: 3 }] }
+    { name: 'Деревянный меч', result: 'wood_sword', req: [{ item: 'wood', count: 10 }], type: 'weapon' },
+    { name: 'Кирка', result: 'pickaxe', req: [{ item: 'wood', count: 5 }, { item: 'stone', count: 5 }], type: 'weapon' },
+    { name: 'Стена', result: 'wall', req: [{ item: 'wood', count: 5 }], type: 'building' },
+    { name: 'Костёр', result: 'campfire', req: [{ item: 'wood', count: 8 }, { item: 'stone', count: 3 }], type: 'building' }
 ];
 
-// ГЕНЕРАЦИЯ БИОМОВ
+// Определение биома
 function getBiome(x, y) {
-    if (x < 40 && y < 40) return 'desert';
-    if (x > 160 && y > 160) return 'snow';
-    if (x > 80 && x < 120 && y > 80 && y < 120) return 'forest';
+    if (x < 50 && y < 50) return 'desert';
+    if (x > 150 && y > 150) return 'snow';
+    if (x > 70 && x < 130 && y > 70 && y < 130) return 'forest';
     return 'plains';
 }
 
 function generateWorld() {
     resources = [];
-    for (let i = 0; i < 2000; i++) {
+    // Генерация ресурсов в зависимости от биома
+    for (let i = 0; i < 3000; i++) {
         const x = Math.floor(Math.random() * WORLD_W);
         const y = Math.floor(Math.random() * WORLD_H);
         const biome = getBiome(x, y);
         let type = 'tree';
+        
         if (biome === 'desert') type = Math.random() > 0.8 ? 'stone' : 'cactus';
         else if (biome === 'snow') type = Math.random() > 0.7 ? 'stone' : 'snow_tree';
         else if (biome === 'forest') type = Math.random() > 0.8 ? 'stone' : 'tree';
@@ -53,36 +54,49 @@ function generateWorld() {
     }
 
     // Мобы (Волки)
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 80; i++) {
         mobs.push({
             id: nextId++,
             x: Math.floor(Math.random() * WORLD_W),
             y: Math.floor(Math.random() * WORLD_H),
             type: 'wolf',
-            hp: 50,
-            maxHp: 50,
+            hp: 60,
+            maxHp: 60,
             targetId: null,
             angle: Math.random() * Math.PI * 2,
-            attackCd: 0
+            attackCd: 0,
+            wanderCd: 0
         });
     }
 }
 
-function isSolid(x, y) {
-    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return true;
-    for (let b of buildings) { if (b.x === x && b.y === y) return true; }
+// Проверка коллизий (учитываем радиус игрока)
+function isSolid(x, y, radius = 0.3) {
+    const points = [
+        { px: x - radius, py: y - radius },
+        { px: x + radius, py: y - radius },
+        { px: x - radius, py: y + radius },
+        { px: x + radius, py: y + radius }
+    ];
+    for (let p of points) {
+        if (p.px < 0 || p.py < 0 || p.px >= WORLD_W || p.py >= WORLD_H) return true;
+        for (let b of buildings) {
+            if (Math.floor(p.px) === b.x && Math.floor(p.py) === b.y) return true;
+        }
+    }
     return false;
 }
 
 function getFreeSpawn() {
     for (let i = 0; i < 500; i++) {
-        const x = Math.floor(WORLD_W/2 - 20 + Math.random() * 40);
-        const y = Math.floor(WORLD_H/2 - 20 + Math.random() * 40);
+        const x = WORLD_W/2 - 20 + Math.random() * 40;
+        const y = WORLD_H/2 - 20 + Math.random() * 40;
         if (!isSolid(x, y)) return { x, y };
     }
     return { x: WORLD_W/2, y: WORLD_H/2 };
 }
 
+// Инвентарь хелперы
 function hasItem(inv, item, count) {
     let c = 0;
     inv.forEach(i => { if (i && i.id === item) c += i.count; });
@@ -110,7 +124,7 @@ function addItem(inv, item, count) {
     for (let i = 0; i < inv.length; i++) {
         if (!inv[i]) { inv[i] = { id: item, count }; return inv; }
     }
-    return inv;
+    return inv; // Инвентарь полон
 }
 
 io.on('connection', (socket) => {
@@ -126,14 +140,12 @@ io.on('connection', (socket) => {
             hp: 100, maxHp: 100, hunger: 100,
             inventory: Array(20).fill(null),
             equip: 'hand',
-            angle: 0, isAttacking: false, moveAnim: 0,
-            dx: 0, dy: 0
+            angle: 0, isAttacking: false, attackTimer: 0,
+            moveAnim: 0, dx: 0, dy: 0
         };
-        // Стартовые предметы
         players[pId].inventory = addItem(players[pId].inventory, 'wood', 5);
 
-        socket.emit('init', { id: pId, worldW: WORLD_W, worldH: WORLD_H, recipes });
-        io.emit('updatePlayers', players);
+        socket.emit('init', { id: pId, worldW: WORLD_W, worldH: WORLD_H, recipes, x: spawn.x, y: spawn.y });
         io.emit('onlineCount', Object.keys(players).length);
     });
 
@@ -147,33 +159,33 @@ io.on('connection', (socket) => {
         let newX = p.x + data.dx * speed;
         let newY = p.y + data.dy * speed;
 
-        if (!isSolid(Math.floor(newX), Math.floor(newY))) {
-            p.x = newX; p.y = newY;
-        }
-        if (data.dx !== 0 || data.dy !== 0) p.moveAnim += 0.2;
+        // Раздельная проверка по осям, чтобы не застревать в стенах
+        if (!isSolid(newX, p.y)) p.x = newX;
+        if (!isSolid(p.x, newY)) p.y = newY;
+
+        if (data.dx !== 0 || data.dy !== 0) p.moveAnim += 0.3;
     });
 
     socket.on('attack', () => {
-        if (!pId || !players[pId]) return;
+        if (!pId || !players[pId] || players[pId].attackTimer > 0) return;
         const p = players[pId];
         p.isAttacking = true;
-        setTimeout(() => p.isAttacking = false, 150);
+        p.attackTimer = 15; // Кулдаун 0.5 сек
 
-        const damage = p.equip === 'wood_sword' ? 20 : (p.equip === 'pickaxe' ? 10 : 5);
+        const damage = p.equip === 'wood_sword' ? 25 : (p.equip === 'pickaxe' ? 15 : 8);
         
         // Удар по ресурсам
         for (let i = resources.length - 1; i >= 0; i--) {
             const r = resources[i];
-            if (Math.hypot(p.x - r.x, p.y - r.y) < 1.5) {
+            if (Math.hypot(p.x - (r.x+0.5), p.y - (r.y+0.5)) < 1.8) {
                 r.hp -= damage;
                 if (r.hp <= 0) {
-                    let drop = 'wood';
-                    let count = 2;
+                    let drop = 'wood'; let count = 2;
                     if (r.type === 'stone') { drop = 'stone'; count = 2; }
-                    else if (r.type === 'bush') { drop = 'berry'; count = 3; }
-                    else if (r.type === 'cactus') { drop = 'berry'; count = 1; }
+                    else if (r.type === 'bush' || r.type === 'cactus') { drop = 'berry'; count = 3; }
+                    else if (r.type === 'snow_tree') { drop = 'wood'; count = 3; }
+                    
                     p.inventory = addItem(p.inventory, drop, count);
-                    p.inventory = addItem(p.inventory, 'exp', 5);
                     resources.splice(i, 1);
                 }
                 break;
@@ -182,11 +194,10 @@ io.on('connection', (socket) => {
 
         // Удар по мобам
         for (let m of mobs) {
-            if (Math.hypot(p.x - m.x, p.y - m.y) < 1.5) {
+            if (Math.hypot(p.x - m.x, p.y - m.y) < 1.8) {
                 m.hp -= damage;
                 if (m.hp <= 0) {
                     p.inventory = addItem(p.inventory, 'meat', 2);
-                    p.inventory = addItem(p.inventory, 'exp', 15);
                     m.hp = m.maxHp;
                     const s = getFreeSpawn();
                     m.x = s.x; m.y = s.y;
@@ -205,7 +216,7 @@ io.on('connection', (socket) => {
         
         if (canCraft) {
             recipe.req.forEach(r => { players[pId].inventory = removeItem(players[pId].inventory, r.item, r.count); });
-            if (recipe.result === 'wall' || recipe.result === 'campfire') {
+            if (recipe.type === 'building') {
                 players[pId].inventory = addItem(players[pId].inventory, recipe.result, 1);
             } else {
                 players[pId].equip = recipe.result;
@@ -219,10 +230,11 @@ io.on('connection', (socket) => {
         const item = p.inventory[data.slotIndex];
         if (!item || (item.id !== 'wall' && item.id !== 'campfire')) return;
         
-        const bx = Math.floor(p.x + Math.cos(p.angle));
-        const by = Math.floor(p.y + Math.sin(p.angle));
+        // Ставим перед игроком
+        const bx = Math.floor(p.x + Math.cos(p.angle) * 1.5);
+        const by = Math.floor(p.y + Math.sin(p.angle) * 1.5);
         
-        if (!isSolid(bx, by)) {
+        if (!isSolid(bx + 0.5, by + 0.5, 0.5)) {
             buildings.push({ id: nextId++, x: bx, y: by, type: item.id, owner: pId });
             p.inventory = removeItem(p.inventory, item.id, 1);
         }
@@ -234,30 +246,30 @@ io.on('connection', (socket) => {
             if (hasItem(players[pId].inventory, item, 1)) {
                 players[pId].inventory = removeItem(players[pId].inventory, item, 1);
                 players[pId].hunger = Math.min(100, players[pId].hunger + (item === 'meat' ? 30 : 15));
-                players[pId].hp = Math.min(players[pId].maxHp, players[pId].hp + 10);
+                players[pId].hp = Math.min(players[pId].maxHp, players[pId].hp + (item === 'meat' ? 15 : 5));
             }
         }
     });
 
     socket.on('disconnect', () => {
-        if (pId) { delete players[pId]; io.emit('updatePlayers', players); io.emit('onlineCount', Object.keys(players).length); }
+        if (pId) { delete players[pId]; io.emit('onlineCount', Object.keys(players).length); }
     });
 });
 
-// ИГРОВОЙ ЦИКЛ СЕРВЕРА (Мобы и Голода)
+// ИГРОВОЙ ЦИКЛ СЕРВЕРА (Математика мобов, голод, таймеры)
 setInterval(() => {
-    // Голод
     for (let p of Object.values(players)) {
-        p.hunger -= 0.02;
-        if (p.hunger <= 0) { p.hunger = 0; p.hp -= 0.1; }
+        p.hunger = Math.max(0, p.hunger - 0.01);
+        if (p.hunger <= 0) p.hp = Math.max(0, p.hp - 0.1);
         if (p.hp <= 0) { p.hp = 100; p.hunger = 50; const s = getFreeSpawn(); p.x = s.x; p.y = s.y; }
+        if (p.attackTimer > 0) p.attackTimer--;
+        if (p.attackTimer === 0) p.isAttacking = false;
     }
 
-    // ИИ Мобов
     for (let m of mobs) {
         if (m.attackCd > 0) m.attackCd--;
         let target = null;
-        let minDist = 8; // Дистанция агрессии
+        let minDist = 8; // Дистанция агрессии волков
 
         for (let p of Object.values(players)) {
             const d = Math.hypot(p.x - m.x, p.y - m.y);
@@ -266,27 +278,32 @@ setInterval(() => {
 
         if (target) {
             const angle = Math.atan2(target.y - m.y, target.x - m.x);
-            m.x += Math.cos(angle) * 0.1;
-            m.y += Math.sin(angle) * 0.1;
+            const newX = m.x + Math.cos(angle) * 0.08;
+            const newY = m.y + Math.sin(angle) * 0.08;
+            if (!isSolid(newX, newY, 0.3)) { m.x = newX; m.y = newY; }
             m.angle = angle;
 
             if (minDist < 1.2 && m.attackCd === 0) {
-                target.hp -= 10;
-                m.attackCd = 30; // 0.5 сек кд
+                target.hp = Math.max(0, target.hp - 10);
+                m.attackCd = 30;
             }
         } else {
-            // Бродить
-            if (Math.random() < 0.02) m.angle += (Math.random() - 0.5) * 2;
-            m.x += Math.cos(m.angle) * 0.03;
-            m.y += Math.sin(m.angle) * 0.03;
-            if (isSolid(Math.floor(m.x), Math.floor(m.y))) m.angle += Math.PI;
+            m.wanderCd--;
+            if (m.wanderCd <= 0) {
+                m.angle += (Math.random() - 0.5) * 2;
+                m.wanderCd = 30 + Math.random() * 60;
+            }
+            const newX = m.x + Math.cos(m.angle) * 0.03;
+            const newY = m.y + Math.sin(m.angle) * 0.03;
+            if (!isSolid(newX, newY, 0.3)) { m.x = newX; m.y = newY; }
+            else m.angle += Math.PI;
         }
     }
 
     io.emit('gameState', { players, resources, buildings, mobs });
-}, 1000 / TICK_RATE);
+}, 1000 / 30); // 30 тиков в секунду
 
 generateWorld();
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-    console.log(`✅ Slize сервер запущен. Карта: ${WORLD_W}x${WORLD_H}`);
+    console.log(`✅ Slize сервер запущен. Огромная карта: ${WORLD_W}x${WORLD_H}`);
 });

@@ -124,7 +124,7 @@
             border-radius: 20px;
             padding: 10px 20px;
             border: 1px solid #d4a547;
-            display: flex;
+            display: none;
             gap: 25px;
             align-items: center;
         }
@@ -162,6 +162,7 @@
             font-weight: bold;
             z-index: 100;
             border: 1px solid #d4a547;
+            display: none;
         }
         #onlineBox {
             position: fixed;
@@ -173,6 +174,7 @@
             color: #7eff9e;
             z-index: 100;
             border: 1px solid #4a7a3a;
+            display: none;
         }
 
         /* ИНВЕНТАРЬ (TAB) */
@@ -300,14 +302,14 @@
 <canvas id="gameCanvas"></canvas>
 <div id="nightOverlay"></div>
 
-<div id="hud" style="display: none;">
+<div id="hud">
     <div class="stat">❤️ <div class="statBar"><div class="statFill healthFill" id="healthFill" style="width:100%"></div></div></div>
     <div class="stat">⚡ <div class="statBar"><div class="statFill staminaFill" id="staminaFill" style="width:100%"></div></div></div>
     <div class="stat">🍖 <div class="statBar"><div class="statFill hungerFill" id="hungerFill" style="width:100%"></div></div></div>
 </div>
 
-<div id="levelBox" style="display: none;">🏆 УРОВЕНЬ <span id="levelVal">1</span></div>
-<div id="onlineBox" style="display: none;">👥 <span id="onlineCount">0</span></div>
+<div id="levelBox">🏆 УРОВЕНЬ <span id="levelVal">1</span></div>
+<div id="onlineBox">👥 <span id="onlineCount">0</span></div>
 
 <div id="invMenu">
     <h2>🎒 ИНВЕНТАРЬ (TAB)</h2>
@@ -339,7 +341,6 @@
     let camX = 0, camY = 0;
     let particles = [];
 
-    // Эффекты
     function addParticle(x, y, color) {
         particles.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4 - 2, life: 1, color });
     }
@@ -351,7 +352,6 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Логин
     document.getElementById('playGuestBtn').onclick = () => {
         const nick = document.getElementById('nicknameInput').value.trim() || `Гость_${Math.floor(Math.random() * 999)}`;
         document.getElementById('mainMenu').style.display = 'none';
@@ -366,7 +366,6 @@
             worldW = data.worldW;
             worldH = data.worldH;
             recipes = data.recipes;
-            // Устанавливаем камеру на игрока
             camX = data.x * TILE - canvas.width/2;
             camY = data.y * TILE - canvas.height/2;
             renderCraftMenu();
@@ -391,7 +390,6 @@
         socket.emit('login', { nickname: nick });
     };
 
-    // Управление
     window.addEventListener('keydown', (e) => {
         if (!socket || !myId) return;
         const k = e.key.toLowerCase();
@@ -430,7 +428,7 @@
 
     window.addEventListener('mousedown', (e) => {
         if (!socket || !myId) return;
-        if (e.button === 0) { // ЛКМ
+        if (e.button === 0) {
             if (invOpen && selectedSlot !== -1) {
                 const item = state.players[myId].inventory[selectedSlot];
                 if (item && (item.id === 'wall' || item.id === 'campfire')) {
@@ -439,7 +437,7 @@
                 }
             }
             socket.emit('attack');
-        } else if (e.button === 2) { // ПКМ
+        } else if (e.button === 2) {
             if (invOpen && selectedSlot !== -1) {
                 const item = state.players[myId].inventory[selectedSlot];
                 if (item && (item.id === 'berry' || item.id === 'meat' || item.id === 'medkit')) {
@@ -450,7 +448,6 @@
     });
     window.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Отправка движения
     let lastMove = 0;
     function sendMove() {
         if (!socket || !myId) return;
@@ -525,12 +522,13 @@
         });
     }
 
-    // ========== ОСНОВНОЙ РЕНДЕРИНГ (Красивый, с тенями и градиентами) ==========
+    // ========== ЦВЕТА БИОМОВ (РАЗНОЦВЕТНЫЕ) ==========
     function getBiomeColor(x, y) {
-        if (x < 50 && y < 50) return ['#f0d9a8', '#e2c88a']; // Пустыня
-        if (x > 150 && y > 150) return ['#d0e4f0', '#bed4e4']; // Снег
-        if (x > 70 && x < 130 && y > 70 && y < 130) return ['#2a6a1a', '#1e5212']; // Тёмный лес
-        return ['#5a9a3a', '#4a882a']; // Равнины
+        if (x < 60 && y < 60) return ['#f5e6c4', '#e8d4a8']; // Пустыня (жёлто-песочный)
+        if (x > 140 && y > 140) return ['#e0f0f8', '#c8e0ec']; // Снег (голубоватый)
+        if (x > 60 && x < 140 && y > 60 && y < 140) return ['#2a6a1a', '#1e5212']; // Тёмный лес (тёмно-зелёный)
+        if (x < 40 || x > 160 || y < 40 || y > 160) return ['#8aaa6a', '#7a9a5a']; // Опушка (светло-зелёный)
+        return ['#5a9a3a', '#4a882a']; // Равнины (средне-зелёный)
     }
 
     function drawResource(ctx, x, y, type) {
@@ -599,7 +597,7 @@
         ctx.save();
         ctx.translate(x + TILE/2, y + TILE/2);
         ctx.rotate(mob.angle || 0);
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = mob.type === 'bear' ? '#8a5a4a' : '#666';
         ctx.beginPath(); ctx.ellipse(0, 0, 14, 10, 0, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = '#444';
         ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(22, 0); ctx.lineTo(14, 4); ctx.fill();
@@ -614,18 +612,14 @@
         ctx.translate(x + TILE/2, y + TILE/2);
         ctx.shadowBlur = 6;
         ctx.shadowColor = '#00000066';
-        // Тень
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath(); ctx.ellipse(0, 12, 12, 6, 0, 0, Math.PI*2); ctx.fill();
-        // Ноги
         ctx.fillStyle = '#4a2a1a';
         const legOffset = Math.sin(animTime) * 5;
         ctx.fillRect(-6, 4, 5, 12 + legOffset);
         ctx.fillRect(1, 4, 5, 12 - legOffset);
-        // Тело
         ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
         ctx.beginPath(); ctx.arc(0, -2, 12, 0, Math.PI*2); ctx.fill();
-        // Рука с оружием
         ctx.save();
         ctx.rotate(pl.angle);
         ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
@@ -642,7 +636,6 @@
             ctx.fillRect(24, -6, 5, 12);
         }
         ctx.restore();
-        // Имя и ХП
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
@@ -662,7 +655,6 @@
         const now = Date.now() / 1000;
         const anim = now * 8;
         
-        // Плавная камера
         const targetCamX = p.x * TILE - canvas.width/2;
         const targetCamY = p.y * TILE - canvas.height/2;
         camX = camX * 0.9 + targetCamX * 0.1;
@@ -672,7 +664,6 @@
         ctx.save();
         ctx.translate(-camX, -camY);
 
-        // Земля (только видимая область)
         const startX = Math.max(0, Math.floor(camX / TILE) - 1);
         const startY = Math.max(0, Math.floor(camY / TILE) - 1);
         const endX = Math.min(worldW, Math.ceil((camX + canvas.width) / TILE) + 2);
@@ -682,7 +673,6 @@
                 const colors = getBiomeColor(x, y);
                 ctx.fillStyle = (x + y) % 2 === 0 ? colors[0] : colors[1];
                 ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
-                // Добавляем текстуру травы
                 if (Math.random() < 0.02) {
                     ctx.fillStyle = '#aaffaa';
                     ctx.fillRect(x * TILE + Math.random() * TILE, y * TILE + Math.random() * TILE, 2, 2);
@@ -690,25 +680,18 @@
             }
         }
 
-        // Постройки
         for (let b of state.buildings) {
             if (b.x * TILE < camX - TILE || b.x * TILE > camX + canvas.width + TILE) continue;
             drawBuilding(ctx, b.x * TILE, b.y * TILE, b.type);
         }
-
-        // Ресурсы
         for (let r of state.resources) {
             if (r.x * TILE < camX - TILE || r.x * TILE > camX + canvas.width + TILE) continue;
             drawResource(ctx, r.x * TILE, r.y * TILE, r.type);
         }
-
-        // Мобы
         for (let m of state.mobs) {
             if (m.x * TILE < camX - TILE || m.x * TILE > camX + canvas.width + TILE) continue;
             drawMob(ctx, m.x * TILE, m.y * TILE, m, anim);
         }
-
-        // Игроки
         for (let id in state.players) {
             const pl = state.players[id];
             const x = pl.x * TILE, y = pl.y * TILE;
@@ -716,7 +699,6 @@
             drawPlayer(ctx, x, y, pl, id === myId, anim);
         }
 
-        // Частицы
         for (let i=particles.length-1; i>=0; i--) {
             const p = particles[i];
             p.x += p.vx;

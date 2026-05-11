@@ -1,7 +1,7 @@
 {
-  "name": "slize-3d",
+  "name": "slize-2d",
   "version": "1.0.0",
-  "description": "Slize 3D | Бесплатная онлайн игра выживания",
+  "description": "Slize | 2D онлайн игра выживания",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

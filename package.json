@@ -1,7 +1,7 @@
 {
-  "name": "slize-beautiful",
-  "version": "1.0.0",
-  "description": "Slize | Красивая 2D онлайн игра",
+  "name": "slize-final",
+  "version": "2.0.0",
+  "description": "Slize | Полноценная 2D онлайн игра",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

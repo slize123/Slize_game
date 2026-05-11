@@ -1,7 +1,7 @@
 {
-  "name": "dynast-io",
+  "name": "slize",
   "version": "1.0.0",
-  "description": "бесплатная онлайн игра",
+  "description": "Slize | Бесплатная онлайн игра",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

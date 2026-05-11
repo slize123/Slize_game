@@ -9,18 +9,16 @@ const io = socketIo(server, { cors: { origin: "*" } });
 
 app.use(express.static(path.join(__dirname)));
 
-// НАСТРОЙКИ МИРА
+// МИР
 const WORLD_W = 200;
 const WORLD_H = 200;
-const TILE = 48;
-
 let players = {};
 let resources = [];
 let buildings = [];
 let mobs = [];
 let nextId = 1;
 
-// РЕЦЕПТЫ КРАФТА
+// РЕЦЕПТЫ
 const recipes = [
     { name: 'Деревянный меч', result: 'wood_sword', req: [{ item: 'wood', count: 10 }], type: 'weapon' },
     { name: 'Кирка', result: 'pickaxe', req: [{ item: 'wood', count: 5 }, { item: 'stone', count: 5 }], type: 'weapon' },
@@ -30,41 +28,61 @@ const recipes = [
     { name: 'Ягоды', result: 'berry', req: [{ item: 'berry', count: 2 }], type: 'consumable' }
 ];
 
-// Определение биома
 function getBiome(x, y) {
-    if (x < 50 && y < 50) return 'desert';
-    if (x > 150 && y > 150) return 'snow';
-    if (x > 70 && x < 130 && y > 70 && y < 130) return 'forest';
+    if (x < 60 && y < 60) return 'desert';
+    if (x > 140 && y > 140) return 'snow';
+    if (x > 60 && x < 140 && y > 60 && y < 140) return 'forest';
     return 'plains';
 }
 
 function generateWorld() {
     resources = [];
-    for (let i = 0; i < 2800; i++) {
+    // 8000 ресурсов – плотно
+    for (let i = 0; i < 8000; i++) {
         const x = Math.floor(Math.random() * WORLD_W);
         const y = Math.floor(Math.random() * WORLD_H);
         const biome = getBiome(x, y);
-        let type = 'tree';
-        if (biome === 'desert') type = Math.random() > 0.7 ? 'stone' : 'cactus';
-        else if (biome === 'snow') type = Math.random() > 0.6 ? 'stone' : 'snow_tree';
-        else if (biome === 'forest') type = Math.random() > 0.8 ? 'stone' : 'tree';
-        else type = ['tree', 'stone', 'bush'][Math.floor(Math.random() * 3)];
-        
-        resources.push({ id: nextId++, x, y, type, hp: (type === 'stone' ? 50 : 30), maxHp: (type === 'stone' ? 50 : 30) });
+        let type;
+        if (biome === 'desert') {
+            type = Math.random() < 0.6 ? 'cactus' : (Math.random() < 0.5 ? 'stone' : 'bush');
+        } else if (biome === 'snow') {
+            type = Math.random() < 0.7 ? 'snow_tree' : 'stone';
+        } else if (biome === 'forest') {
+            type = Math.random() < 0.8 ? 'tree' : 'stone';
+        } else {
+            const r = Math.random();
+            if (r < 0.5) type = 'tree';
+            else if (r < 0.7) type = 'stone';
+            else type = 'bush';
+        }
+        resources.push({ id: nextId++, x, y, type, hp: type === 'stone' ? 50 : 30, maxHp: type === 'stone' ? 50 : 30 });
     }
-    // Мобы (волки и медведи)
-    for (let i = 0; i < 100; i++) {
+    // 300 мобов
+    mobs = [];
+    for (let i = 0; i < 300; i++) {
+        const isBear = Math.random() < 0.2;
         mobs.push({
             id: nextId++,
             x: Math.floor(Math.random() * WORLD_W),
             y: Math.floor(Math.random() * WORLD_H),
-            type: Math.random() > 0.7 ? 'bear' : 'wolf',
-            hp: Math.random() > 0.7 ? 120 : 70,
-            maxHp: Math.random() > 0.7 ? 120 : 70,
+            type: isBear ? 'bear' : 'wolf',
+            hp: isBear ? 140 : 75,
+            maxHp: isBear ? 140 : 75,
             targetId: null,
             angle: Math.random() * Math.PI * 2,
             attackCd: 0,
             wanderCd: 0
+        });
+    }
+    // Стартовые костры
+    buildings = [];
+    for (let i = 0; i < 50; i++) {
+        buildings.push({
+            id: nextId++,
+            x: Math.floor(20 + Math.random() * (WORLD_W - 40)),
+            y: Math.floor(20 + Math.random() * (WORLD_H - 40)),
+            type: 'campfire',
+            owner: null
         });
     }
 }
@@ -94,7 +112,6 @@ function getFreeSpawn() {
     return { x: WORLD_W/2, y: WORLD_H/2 };
 }
 
-// Инвентарь хелперы
 function hasItem(inv, item, count) {
     let c = 0;
     for (let i of inv) if (i && i.id === item) c += i.count;
@@ -131,7 +148,6 @@ function addItem(inv, item, count) {
     return inv;
 }
 
-// Сохранение прогресса (в памяти по нику)
 const userSave = new Map();
 
 io.on('connection', (socket) => {
@@ -191,12 +207,11 @@ io.on('connection', (socket) => {
         
         const damage = p.equip === 'wood_sword' ? 28 : (p.equip === 'pickaxe' ? 18 : 12);
         
-        // Атака по ресурсам
         for (let i = 0; i < resources.length; i++) {
             const r = resources[i];
             if (Math.hypot(p.x - (r.x+0.5), p.y - (r.y+0.5)) < 1.5) {
                 r.hp -= damage;
-                socket.emit('addParticle', { x: (r.x+0.5)*TILE, y: (r.y+0.5)*TILE, color: '#ffaa66' });
+                socket.emit('addParticle', { x: (r.x+0.5)*48, y: (r.y+0.5)*48, color: '#ffaa66' });
                 if (r.hp <= 0) {
                     let drop = 'wood', count = 2;
                     if (r.type === 'stone') { drop = 'stone'; count = 2; }
@@ -208,14 +223,19 @@ io.on('connection', (socket) => {
                 break;
             }
         }
-        // Атака по мобам
         for (let m of mobs) {
             if (Math.hypot(p.x - m.x, p.y - m.y) < 1.5) {
                 m.hp -= damage;
-                socket.emit('addParticle', { x: m.x*TILE + TILE/2, y: m.y*TILE + TILE/2, color: '#ff4444' });
+                socket.emit('addParticle', { x: m.x*48 + 24, y: m.y*48 + 24, color: '#ff4444' });
                 if (m.hp <= 0) {
                     p.inventory = addItem(p.inventory, 'meat', 2);
                     p.exp += 30;
+                    let expNeeded = 100 + (p.level-1)*50;
+                    if (p.exp >= expNeeded) {
+                        p.level++;
+                        p.exp -= expNeeded;
+                        p.hp = Math.min(p.maxHp, p.hp + 20);
+                    }
                     const newSpawn = getFreeSpawn();
                     m.x = newSpawn.x; m.y = newSpawn.y;
                     m.hp = m.maxHp;
@@ -276,7 +296,6 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         if (pId && players[pId]) {
-            // Сохраняем прогресс
             const p = players[pId];
             userSave.set(p.name, {
                 hp: p.hp, hunger: p.hunger, level: p.level, exp: p.exp,
@@ -288,9 +307,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// ИГРОВОЙ ЦИКЛ (30 fps)
+// ИГРОВОЙ ЦИКЛ (30 тиков)
 setInterval(() => {
-    // Регенерация стамины, голод, уровни
     for (let p of Object.values(players)) {
         p.stamina = Math.min(100, p.stamina + 1.2);
         p.hunger = Math.max(0, p.hunger - 0.012);
@@ -304,7 +322,6 @@ setInterval(() => {
         if (p.attackTimer > 0) p.attackTimer--;
         if (p.attackTimer === 0) p.isAttacking = false;
         
-        // Опыт -> уровень
         let expNeeded = 100 + (p.level-1) * 50;
         if (p.exp >= expNeeded) {
             p.level++;
@@ -313,7 +330,6 @@ setInterval(() => {
         }
     }
     
-    // Логика мобов
     for (let m of mobs) {
         if (m.attackCd > 0) m.attackCd--;
         let target = null;
@@ -345,18 +361,34 @@ setInterval(() => {
         }
     }
     
-    // Респавн ресурсов
-    if (resources.length < 2400) {
-        for (let i=0; i<5; i++) {
+    if (resources.length < 7000) {
+        for (let i = 0; i < 15; i++) {
             const x = Math.floor(Math.random() * WORLD_W);
             const y = Math.floor(Math.random() * WORLD_H);
-            const biome = getBiome(x,y);
-            let type = 'tree';
-            if (biome === 'desert') type = Math.random()>0.7 ? 'stone' : 'cactus';
-            else if (biome === 'snow') type = Math.random()>0.6 ? 'stone' : 'snow_tree';
-            else if (biome === 'forest') type = Math.random()>0.8 ? 'stone' : 'tree';
-            else type = ['tree','stone','bush'][Math.floor(Math.random()*3)];
-            resources.push({ id: nextId++, x, y, type, hp: type==='stone'?50:30, maxHp: type==='stone'?50:30 });
+            const biome = getBiome(x, y);
+            let type;
+            if (biome === 'desert') type = Math.random() > 0.7 ? 'stone' : 'cactus';
+            else if (biome === 'snow') type = Math.random() > 0.6 ? 'stone' : 'snow_tree';
+            else if (biome === 'forest') type = Math.random() > 0.8 ? 'stone' : 'tree';
+            else type = ['tree', 'stone', 'bush'][Math.floor(Math.random() * 3)];
+            resources.push({ id: nextId++, x, y, type, hp: type === 'stone' ? 50 : 30, maxHp: type === 'stone' ? 50 : 30 });
+        }
+    }
+    if (mobs.length < 250) {
+        for (let i = 0; i < 5; i++) {
+            const isBear = Math.random() < 0.15;
+            mobs.push({
+                id: nextId++,
+                x: Math.floor(Math.random() * WORLD_W),
+                y: Math.floor(Math.random() * WORLD_H),
+                type: isBear ? 'bear' : 'wolf',
+                hp: isBear ? 140 : 75,
+                maxHp: isBear ? 140 : 75,
+                targetId: null,
+                angle: Math.random() * Math.PI * 2,
+                attackCd: 0,
+                wanderCd: 0
+            });
         }
     }
     
@@ -366,5 +398,5 @@ setInterval(() => {
 generateWorld();
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
     console.log(`✅ Slize сервер запущен. Карта: ${WORLD_W}x${WORLD_H}`);
-    console.log(`Ресурсов: ${resources.length}, мобов: ${mobs.length}, построек: ${buildings.length}`);
+    console.log(`Ресурсов: ${resources.length}, мобов: ${mobs.length}`);
 });

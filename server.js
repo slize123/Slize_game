@@ -1,119 +1,136 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
-app.use(express.static(__dirname + '/'));
+app.use(express.static(path.join(__dirname)));
 
 let players = {};
 let resources = [];
-let walls = [];
-let barrels = [];
-let roads = [];
 let nextId = 1;
+let sessionIds = new Set();
 
-const WORLD_W = 32;
-const WORLD_H = 22;
-
-// Генерация дорог
-function generateRoads() {
-    const roadList = [];
-    for (let i = 6; i < WORLD_W - 6; i += 4) {
-        roadList.push({ x: i, y: Math.floor(WORLD_H / 2) });
-        roadList.push({ x: i, y: Math.floor(WORLD_H / 2) + 1 });
-    }
-    for (let j = 4; j < WORLD_H - 4; j += 3) {
-        roadList.push({ x: Math.floor(WORLD_W / 2), y: j });
-        roadList.push({ x: Math.floor(WORLD_W / 2) + 1, y: j });
-    }
-    return roadList;
-}
+const WORLD_W = 80;
+const WORLD_H = 60;
 
 // Генерация ресурсов
 function generateResources() {
+    const types = ['tree', 'stone', 'gold'];
     const arr = [];
-    const types = ['wood', 'stone', 'gold', 'crystal', 'cactus', 'fern'];
-    for (let i = 0; i < 140; i++) {
+    for (let i = 0; i < 400; i++) {
         const type = types[Math.floor(Math.random() * types.length)];
-        const x = Math.floor(Math.random() * WORLD_W);
-        const y = Math.floor(Math.random() * WORLD_H);
-        if (!isSolid(x, y, true) && !roads.some(r => r.x === x && r.y === y)) {
-            arr.push({ x, y, type });
-        }
+        const x = Math.floor(2 + Math.random() * (WORLD_W - 4));
+        const y = Math.floor(2 + Math.random() * (WORLD_H - 4));
+        arr.push({ id: Math.random(), x, y, type, hp: type === 'tree' ? 30 : 40 });
     }
     return arr;
 }
 
-// Генерация бочек
-function generateBarrels() {
-    const arr = [];
-    for (let i = 0; i < 25; i++) {
-        const x = Math.floor(Math.random() * WORLD_W);
-        const y = Math.floor(Math.random() * WORLD_H);
-        if (!isSolid(x, y, true) && !roads.some(r => r.x === x && r.y === y)) {
-            arr.push({ x, y });
-        }
+function isSolid(x, y) {
+    if (x < 1 || y < 1 || x >= WORLD_W - 1 || y >= WORLD_H - 1) return true;
+    for (let p of Object.values(players)) {
+        if (Math.floor(p.x) === x && Math.floor(p.y) === y) return true;
     }
-    return arr;
-}
-
-function isSolid(x, y, ignoreRes = false) {
-    if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return true;
-    for (let w of walls) if (w.x === x && w.y === y) return true;
-    if (!ignoreRes) {
-        for (let r of resources) if (r.x === x && r.y === y) return true;
-        for (let b of barrels) if (b.x === x && b.y === y) return true;
+    for (let r of resources) {
+        if (r.x === x && r.y === y) return true;
     }
     return false;
 }
 
 function getFreeSpawn() {
-    for (let i = 0; i < 300; i++) {
-        const x = Math.floor(5 + Math.random() * (WORLD_W - 10));
-        const y = Math.floor(5 + Math.random() * (WORLD_H - 10));
-        if (!isSolid(x, y, true) && !roads.some(r => r.x === x && r.y === y)) {
-            return { x, y };
-        }
+    for (let i = 0; i < 500; i++) {
+        const x = Math.floor(10 + Math.random() * (WORLD_W - 20));
+        const y = Math.floor(10 + Math.random() * (WORLD_H - 20));
+        if (!isSolid(x, y)) return { x, y };
     }
-    return { x: 15, y: 10 };
+    return { x: 40, y: 30 };
 }
 
+// Сохранение прогресса (в памяти, можно заменить на БД)
+const userData = new Map();
+
 io.on('connection', (socket) => {
-    const spawn = getFreeSpawn();
-    const id = String(nextId++);
+    console.log('Новое подключение');
     
-    players[id] = {
-        id: id,
-        x: spawn.x,
-        y: spawn.y,
-        health: 100,
-        inventory: { wood: 10, stone: 6, gold: 0, crystal: 0, cactus: 0, fern: 0, timerite: 0, meat: 0, feather: 0, dust: 0, web: 0, fur: 0, bone: 0, fuel: 2 },
-        name: `Slizer_${Math.floor(Math.random() * 999)}`
-    };
+    let currentPlayerId = null;
     
-    socket.emit('init', {
-        id: id,
-        x: players[id].x,
-        y: players[id].y,
-        inventory: players[id].inventory,
-        health: players[id].health,
-        online: Object.keys(players).length
+    socket.on('login', (data) => {
+        const { email, nickname, isGuest } = data;
+        const finalNick = nickname || `Гость_${Math.floor(Math.random() * 9999)}`;
+        
+        // Проверка на дубли по email
+        let existingUser = null;
+        if (email && !isGuest) {
+            for (let [uid, p] of Object.entries(players)) {
+                if (p.email === email) {
+                    existingUser = p;
+                    break;
+                }
+            }
+        }
+        
+        let spawn;
+        let savedData = null;
+        
+        if (existingUser) {
+            // Возвращаем существующего игрока
+            spawn = { x: existingUser.x, y: existingUser.y };
+            savedData = { level: existingUser.level || 1, exp: existingUser.exp || 0 };
+            currentPlayerId = existingUser.id;
+            players[currentPlayerId] = existingUser;
+            players[currentPlayerId].socketId = socket.id;
+        } else {
+            spawn = getFreeSpawn();
+            const userId = String(nextId++);
+            
+            // Загружаем сохранённые данные
+            const userKey = email || finalNick;
+            const saved = userData.get(userKey);
+            
+            players[userId] = {
+                id: userId,
+                socketId: socket.id,
+                x: spawn.x,
+                y: spawn.y,
+                health: 100,
+                name: finalNick,
+                email: email || null,
+                level: saved?.level || 1,
+                exp: saved?.exp || 0,
+                inventory: saved?.inventory || Array(12).fill().map(() => ({ name: 'empty', count: 0 }))
+            };
+            currentPlayerId = userId;
+        }
+        
+        // Инициализация инвентаря если пуст
+        if (!players[currentPlayerId].inventory || players[currentPlayerId].inventory.length === 0) {
+            players[currentPlayerId].inventory = Array(12).fill().map(() => ({ name: 'empty', count: 0 }));
+            players[currentPlayerId].inventory[0] = { name: 'wood', count: 5 };
+            players[currentPlayerId].inventory[1] = { name: 'stone', count: 3 };
+        }
+        
+        socket.emit('init', {
+            id: currentPlayerId,
+            x: players[currentPlayerId].x,
+            y: players[currentPlayerId].y,
+            health: players[currentPlayerId].health,
+            inventory: players[currentPlayerId].inventory,
+            level: players[currentPlayerId].level,
+            exp: players[currentPlayerId].exp
+        });
+        
+        io.emit('updatePlayers', players);
+        io.emit('updateResources', resources);
+        io.emit('onlineCount', Object.keys(players).length);
     });
     
-    io.emit('updatePlayers', players);
-    io.emit('updateResources', resources);
-    io.emit('updateWalls', walls);
-    io.emit('updateBarrels', barrels);
-    io.emit('updateRoads', roads);
-    
-    socket.on('joinGame', () => {});
-    
     socket.on('move', (data) => {
-        const p = players[id];
-        if (!p) return;
+        if (!currentPlayerId || !players[currentPlayerId]) return;
+        const p = players[currentPlayerId];
         let newX = p.x + data.dx;
         let newY = p.y + data.dy;
         
@@ -122,37 +139,61 @@ io.on('connection', (socket) => {
             p.y = newY;
             
             // Сбор ресурсов
-            const resIndex = resources.findIndex(r => r.x === newX && r.y === newY);
+            const resIndex = resources.findIndex(r => Math.floor(r.x) === Math.floor(newX) && Math.floor(r.y) === Math.floor(newY));
             if (resIndex !== -1) {
                 const res = resources[resIndex];
-                const gain = res.type === 'gold' ? 2 : 1;
-                if (p.inventory[res.type] !== undefined) p.inventory[res.type] += gain;
+                let itemName = res.type === 'tree' ? 'wood' : (res.type === 'stone' ? 'stone' : 'gold');
+                let amount = res.type === 'gold' ? 2 : 1;
+                
+                // Добавляем в инвентарь
+                for (let i = 0; i < p.inventory.length; i++) {
+                    if (p.inventory[i].name === itemName) {
+                        p.inventory[i].count += amount;
+                        break;
+                    } else if (p.inventory[i].name === 'empty') {
+                        p.inventory[i] = { name: itemName, count: amount };
+                        break;
+                    }
+                }
+                
+                // Опыт
+                let expGain = 5;
+                p.exp += expGain;
+                let expNeeded = 100 + (p.level - 1) * 50;
+                if (p.exp >= expNeeded) {
+                    p.level++;
+                    p.exp = 0;
+                }
+                
                 resources.splice(resIndex, 1);
                 io.emit('updateResources', resources);
-            }
-            
-            // Сбор бочек (топливо)
-            const barrelIndex = barrels.findIndex(b => b.x === newX && b.y === newY);
-            if (barrelIndex !== -1) {
-                p.inventory.fuel = (p.inventory.fuel || 0) + 3;
-                barrels.splice(barrelIndex, 1);
-                io.emit('updateBarrels', barrels);
+                
+                // Сохраняем прогресс
+                if (p.email) userData.set(p.email, { level: p.level, exp: p.exp, inventory: p.inventory });
             }
             
             io.emit('updatePlayers', players);
-            socket.emit('playerUpdate', { id, inventory: p.inventory, health: p.health });
+            socket.emit('playerUpdate', {
+                id: currentPlayerId,
+                x: p.x, y: p.y,
+                health: p.health,
+                inventory: p.inventory,
+                level: p.level,
+                exp: p.exp
+            });
         }
     });
     
     socket.on('attack', (data) => {
-        const attacker = players[id];
-        if (!attacker) return;
+        if (!currentPlayerId || !players[currentPlayerId]) return;
+        const attacker = players[currentPlayerId];
+        if (attacker.health <= 0) return;
         
         let closest = null;
         let minDist = 1.8;
         
         for (let pid in players) {
-            if (pid !== id) {
+            if (pid !== currentPlayerId) {
                 const p = players[pid];
                 const dist = Math.hypot(attacker.x - p.x, attacker.y - p.y);
                 if (dist < minDist) {
@@ -166,68 +207,48 @@ io.on('connection', (socket) => {
             closest.health -= data.damage;
             if (closest.health <= 0) {
                 closest.health = 100;
-                const newSpawn = getFreeSpawn();
-                closest.x = newSpawn.x;
-                closest.y = newSpawn.y;
-                io.emit('death', { id: closest.id });
+                const spawn = getFreeSpawn();
+                closest.x = spawn.x;
+                closest.y = spawn.y;
+                // Опыт за убийство
+                attacker.exp += 20;
+                let expNeeded = 100 + (attacker.level - 1) * 50;
+                if (attacker.exp >= expNeeded) {
+                    attacker.level++;
+                    attacker.exp = 0;
+                }
+                if (attacker.email) userData.set(attacker.email, { level: attacker.level, exp: attacker.exp, inventory: attacker.inventory });
             }
             io.emit('attackEffect', { target: closest.id, newHealth: closest.health });
             io.emit('updatePlayers', players);
         }
     });
     
-    socket.on('craft', (data) => {
-        const p = players[id];
-        if (!p) return;
-        
-        let canCraft = true;
-        for (let [res, val] of Object.entries(data.req)) {
-            if ((p.inventory[res] || 0) < val) canCraft = false;
-        }
-        
-        if (canCraft) {
-            for (let [res, val] of Object.entries(data.req)) {
-                p.inventory[res] -= val;
-            }
-            socket.emit('playerUpdate', { id, inventory: p.inventory, health: p.health });
-            io.emit('updatePlayers', players);
-        }
-    });
-    
     socket.on('disconnect', () => {
-        delete players[id];
-        io.emit('updatePlayers', players);
+        if (currentPlayerId && players[currentPlayerId]) {
+            delete players[currentPlayerId];
+            io.emit('updatePlayers', players);
+            io.emit('onlineCount', Object.keys(players).length);
+            console.log(`Игрок ${currentPlayerId} отключился`);
+        }
     });
 });
 
-// Респавн ресурсов и бочек
+resources = generateResources();
 setInterval(() => {
-    if (resources.length < 100) {
-        const types = ['wood', 'stone', 'gold', 'cactus'];
+    if (resources.length < 300) {
+        const types = ['tree', 'stone', 'gold'];
         const type = types[Math.floor(Math.random() * types.length)];
-        const x = Math.floor(Math.random() * WORLD_W);
-        const y = Math.floor(Math.random() * WORLD_H);
-        if (!isSolid(x, y, true) && !roads.some(r => r.x === x && r.y === y)) {
-            resources.push({ x, y, type });
+        const x = Math.floor(2 + Math.random() * (WORLD_W - 4));
+        const y = Math.floor(2 + Math.random() * (WORLD_H - 4));
+        if (!isSolid(x, y)) {
+            resources.push({ id: Math.random(), x, y, type, hp: 30 });
             io.emit('updateResources', resources);
         }
     }
-    
-    if (barrels.length < 15) {
-        const x = Math.floor(Math.random() * WORLD_W);
-        const y = Math.floor(Math.random() * WORLD_H);
-        if (!isSolid(x, y, true) && !roads.some(r => r.x === x && r.y === y)) {
-            barrels.push({ x, y });
-            io.emit('updateBarrels', barrels);
-        }
-    }
-}, 10000);
-
-roads = generateRoads();
-resources = generateResources();
-barrels = generateBarrels();
+}, 8000);
 
 server.listen(process.env.PORT || 3000, '0.0.0.0', () => {
     console.log('✅ Slize сервер запущен на порту 3000');
-    console.log(`🌍 Мир: ${WORLD_W}x${WORLD_H} | Дорог: ${roads.length} | Ресурсов: ${resources.length} | Бочек: ${barrels.length}`);
+    console.log(`🌍 Карта: ${WORLD_W}x${WORLD_H} | Ресурсов: ${resources.length}`);
 });

@@ -2,208 +2,735 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slize - Dynast Style</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Slize | 2D онлайн выживание</title>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
-        body { background:#0a0f08; font-family: 'Segoe UI', monospace; overflow:hidden; }
-        canvas { display:block; image-rendering:pixelated; background:#0f1a0f; }
-
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: #0a1008;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        /* ГЛАВНОЕ МЕНЮ */
         #mainMenu {
-            position: fixed; inset: 0; background: radial-gradient(circle at center, #1a2f1a, #050a05);
-            z-index: 1000; display: flex; align-items: center; justify-content: center; color: #fff;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0a2a0a 0%, #030803 100%);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
         }
-        .title { font-size: 82px; font-weight: bold; color: #ffdd88; text-shadow: 0 0 40px #ffaa00, 0 0 80px #ff5500; letter-spacing: 6px; }
-        .subtitle { font-size: 22px; color: #aaffaa; margin: 10px 0 40px; }
+        .menuContainer {
+            text-align: center;
+            animation: fadeInUp 0.8s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .gameTitle {
+            font-size: 72px;
+            font-weight: bold;
+            color: #ffd966;
+            text-shadow: 0 0 20px #ffaa33, 0 0 40px #ff8833;
+            margin-bottom: 10px;
+            letter-spacing: 8px;
+        }
+        .gameSub {
+            font-size: 18px;
+            color: #aaffaa;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
         .loginBox {
-            background: rgba(10,20,10,0.9); padding: 40px; border-radius: 20px; border: 3px solid #ffcc44;
-            box-shadow: 0 0 30px #ffaa00;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(15px);
+            border-radius: 48px;
+            padding: 40px;
+            border: 2px solid #d4a547;
+            display: inline-block;
+            min-width: 350px;
         }
-        input { width: 320px; padding: 14px; font-size: 18px; border-radius: 50px; border: 2px solid #ffcc44; background:#112211; color:#ffddaa; text-align:center; }
-        button { margin-top:20px; width:100%; padding:16px; font-size:26px; background:#ff5500; color:white; border:none; border-radius:50px; cursor:pointer; font-weight:bold; }
-        button:hover { background:#ff7733; transform:scale(1.05); }
+        .nickInput {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 16px;
+            border-radius: 40px;
+            border: 1px solid #d4a547;
+            background: rgba(20,20,10,0.9);
+            color: #ffecb3;
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: monospace;
+            outline: none;
+        }
+        .playBtn {
+            background: #4a7a3a;
+            color: #ffecb3;
+            border: none;
+            padding: 14px 32px;
+            font-size: 24px;
+            border-radius: 60px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: 0.05s linear;
+        }
+        .playBtn:hover {
+            background: #6a9a4a;
+            transform: scale(1.02);
+        }
 
-        #hud { position:fixed; bottom:15px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); padding:10px 25px; border-radius:30px; border:2px solid #ffcc44; display:none; gap:25px; z-index:100; }
-        .barContainer { display:flex; align-items:center; gap:8px; color:#ffdd99; font-weight:bold; }
-        .bar { width:180px; height:18px; background:#330000; border-radius:10px; overflow:hidden; }
-        .fill { height:100%; transition:width 0.2s; }
+        /* НОЧНОЙ ЭФФЕКТ */
+        #nightOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 1s;
+        }
 
-        #night { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:5; transition:opacity 1.5s; }
+        /* HUD */
+        #hud {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: 1px solid #d4a547;
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffdd99;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .statBar {
+            width: 120px;
+            height: 10px;
+            background: #330000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .statFill {
+            height: 100%;
+            transition: width 0.2s;
+        }
+        .healthFill { background: #ff4444; }
+        .staminaFill { background: #44ff44; }
+        .hungerFill { background: #ff9933; }
+
+        #levelBox {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: #ffd966;
+            font-weight: bold;
+            z-index: 100;
+            border: 1px solid #d4a547;
+        }
+        #onlineBox {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: #7eff9e;
+            z-index: 100;
+            border: 1px solid #4a7a3a;
+        }
+
+        /* ИНВЕНТАРЬ (TAB) */
+        #invMenu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 16, 8, 0.96);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 2px solid #d4a547;
+            display: none;
+            z-index: 200;
+            min-width: 500px;
+        }
+        #invMenu h2 {
+            color: #ffd966;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .slot {
+            width: 70px;
+            height: 70px;
+            background: #1a2a1a;
+            border: 2px solid #3a5a3a;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 28px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.1s;
+        }
+        .slot:hover {
+            border-color: #ffd966;
+            background: #2a3a2a;
+        }
+        .slot.selected {
+            border-color: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+        }
+        .slot .count {
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 12px;
+            color: #ffd966;
+            font-weight: bold;
+        }
+        .invHint {
+            color: #88ff88;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        /* КРАФТ (C) */
+        #craftMenu {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background: rgba(10, 16, 8, 0.96);
+            backdrop-filter: blur(15px);
+            padding: 25px;
+            border-radius: 20px;
+            border: 2px solid #44aaff;
+            display: none;
+            z-index: 200;
+            min-width: 280px;
+        }
+        #craftMenu h2 {
+            color: #44aaff;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .recipe {
+            background: #1a2a2a;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #3a5a5a;
+        }
+        .recipe:hover {
+            background: #2a4a4a;
+            border-color: #44aaff;
+        }
+        .recipe.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .req {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
 <div id="mainMenu">
-    <div style="text-align:center">
-        <div class="title">SLIZE</div>
-        <div class="subtitle">2D SURVIVAL • DYNAST STYLE</div>
+    <div class="menuContainer">
+        <div class="gameTitle">⚔️ SLIZE ⚔️</div>
+        <div class="gameSub">2D Online Survival | Dynast Style</div>
         <div class="loginBox">
-            <input id="nick" placeholder="Никнейм" maxlength="16" value="Slayer">
-            <button onclick="startGame()">▶ ИГРАТЬ</button>
+            <input type="text" id="nicknameInput" class="nickInput" placeholder="Введите никнейм" maxlength="16">
+            <button id="playGuestBtn" class="playBtn">▶ ИГРАТЬ</button>
         </div>
     </div>
 </div>
 
-<canvas id="canvas"></canvas>
-<div id="night"></div>
+<canvas id="gameCanvas"></canvas>
+<div id="nightOverlay"></div>
 
-<div id="hud">
-    <div class="barContainer">❤️ <div class="bar"><div class="fill" id="hp" style="background:#e00;width:100%"></div></div></div>
-    <div class="barContainer">🍖 <div class="bar"><div class="fill" id="hunger" style="background:#f80;width:100%"></div></div></div>
-    <div class="barContainer">⚡ <div class="bar"><div class="fill" id="stamina" style="background:#0cf;width:100%"></div></div></div>
+<div id="hud" style="display: none;">
+    <div class="stat">❤️ <div class="statBar"><div class="statFill healthFill" id="healthFill" style="width:100%"></div></div></div>
+    <div class="stat">⚡ <div class="statBar"><div class="statFill staminaFill" id="staminaFill" style="width:100%"></div></div></div>
+    <div class="stat">🍖 <div class="statBar"><div class="statFill hungerFill" id="hungerFill" style="width:100%"></div></div></div>
+</div>
+
+<div id="levelBox" style="display: none;">🏆 УРОВЕНЬ <span id="levelVal">1</span></div>
+<div id="onlineBox" style="display: none;">👥 <span id="onlineCount">0</span></div>
+
+<div id="invMenu">
+    <h2>🎒 ИНВЕНТАРЬ (TAB)</h2>
+    <div class="grid" id="invGrid"></div>
+    <div class="invHint">ПКМ по еде — съесть | ЛКМ по предмету / стене — использовать / строить</div>
+</div>
+
+<div id="craftMenu">
+    <h2>🔨 КРАФТ (C)</h2>
+    <div id="craftList"></div>
 </div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    let socket, myId, state = {}, camX = 0, camY = 0;
+    
+    let socket = null;
+    let myId = null;
+    let worldW = 200, worldH = 200;
     const TILE = 48;
-    let keys = {}, mouseX = 0, mouseY = 0;
 
-    function resize() {
+    let state = { players: {}, resources: [], buildings: [], mobs: [] };
+    let recipes = [];
+    let invOpen = false, craftOpen = false;
+    let selectedSlot = -1;
+    let keys = { w: false, s: false, a: false, d: false };
+    let mouseAngle = 0;
+    let camX = 0, camY = 0;
+    let particles = [];
+
+    // Эффекты
+    function addParticle(x, y, color) {
+        particles.push({ x, y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4 - 2, life: 1, color });
+    }
+
+    function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
     }
-    window.addEventListener('resize', resize);
-    resize();
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-    function startGame() {
-        const nick = document.getElementById('nick').value.trim() || "Slayer" + Math.floor(Math.random()*999);
+    // Логин
+    document.getElementById('playGuestBtn').onclick = () => {
+        const nick = document.getElementById('nicknameInput').value.trim() || `Гость_${Math.floor(Math.random() * 999)}`;
         document.getElementById('mainMenu').style.display = 'none';
         document.getElementById('hud').style.display = 'flex';
+        document.getElementById('levelBox').style.display = 'block';
+        document.getElementById('onlineBox').style.display = 'block';
+        
+        socket = io();
 
-        socket = io("http://localhost:3000");   // ← поменяй если сервер на другом порту
-
-        socket.on('init', data => {
+        socket.on('init', (data) => {
             myId = data.id;
+            worldW = data.worldW;
+            worldH = data.worldH;
+            recipes = data.recipes;
+            // Устанавливаем камеру на игрока
+            camX = data.x * TILE - canvas.width/2;
+            camY = data.y * TILE - canvas.height/2;
+            renderCraftMenu();
         });
 
-        socket.on('gameState', s => {
-            state = s;
+        socket.on('gameState', (newState) => {
+            state = newState;
             updateHUD();
+            updateNight();
+            if (invOpen) renderInv();
+            if (craftOpen) renderCraftMenu();
+        });
+        
+        socket.on('onlineCount', (c) => {
+            document.getElementById('onlineCount').innerText = c;
         });
 
-        socket.on('onlineCount', c => console.log('Онлайн:', c));
-    }
+        socket.on('addParticle', (data) => {
+            for (let i = 0; i < 8; i++) addParticle(data.x, data.y, data.color);
+        });
+
+        socket.emit('login', { nickname: nick });
+    };
 
     // Управление
-    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+    window.addEventListener('keydown', (e) => {
+        if (!socket || !myId) return;
+        const k = e.key.toLowerCase();
+        if (k === 'w' || k === 'ц') keys.w = true;
+        if (k === 's' || k === 'ы') keys.s = true;
+        if (k === 'a' || k === 'ф') keys.a = true;
+        if (k === 'd' || k === 'в') keys.d = true;
+        
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            invOpen = !invOpen;
+            document.getElementById('invMenu').style.display = invOpen ? 'block' : 'none';
+            if (invOpen) renderInv();
+        }
+        if (k === 'c' && !e.ctrlKey) {
+            craftOpen = !craftOpen;
+            document.getElementById('craftMenu').style.display = craftOpen ? 'block' : 'none';
+            if (craftOpen) renderCraftMenu();
+        }
+    });
+    window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'w' || k === 'ц') keys.w = false;
+        if (k === 's' || k === 'ы') keys.s = false;
+        if (k === 'a' || k === 'ф') keys.a = false;
+        if (k === 'd' || k === 'в') keys.d = false;
+    });
 
-    window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-    window.addEventListener('mousedown', () => { if(socket && myId) socket.emit('attack'); });
+    window.addEventListener('mousemove', (e) => {
+        if (!myId || !state.players[myId]) return;
+        const p = state.players[myId];
+        const px = p.x * TILE - camX;
+        const py = p.y * TILE - camY;
+        mouseAngle = Math.atan2(e.clientY - py, e.clientX - px);
+    });
 
-    setInterval(() => {
+    window.addEventListener('mousedown', (e) => {
+        if (!socket || !myId) return;
+        if (e.button === 0) { // ЛКМ
+            if (invOpen && selectedSlot !== -1) {
+                const item = state.players[myId].inventory[selectedSlot];
+                if (item && (item.id === 'wall' || item.id === 'campfire')) {
+                    socket.emit('placeBuilding', { slotIndex: selectedSlot });
+                    return;
+                }
+            }
+            socket.emit('attack');
+        } else if (e.button === 2) { // ПКМ
+            if (invOpen && selectedSlot !== -1) {
+                const item = state.players[myId].inventory[selectedSlot];
+                if (item && (item.id === 'berry' || item.id === 'meat' || item.id === 'medkit')) {
+                    socket.emit('eat', { itemId: item.id });
+                }
+            }
+        }
+    });
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Отправка движения
+    let lastMove = 0;
+    function sendMove() {
         if (!socket || !myId) return;
         let dx = 0, dy = 0;
-        if (keys['w'] || keys['ц']) dy = -1;
-        if (keys['s'] || keys['ы']) dy = 1;
-        if (keys['a'] || keys['ф']) dx = -1;
-        if (keys['d'] || keys['в']) dx = 1;
-
-        const p = state.players?.[myId];
-        if (p) {
-            const angle = Math.atan2(mouseY - (p.y * TILE - camY), mouseX - (p.x * TILE - camX));
-            socket.emit('move', {dx, dy, angle});
+        if (keys.w) dy = -1;
+        if (keys.s) dy = 1;
+        if (keys.a) dx = -1;
+        if (keys.d) dx = 1;
+        if (dx !== 0 || dy !== 0) {
+            socket.emit('move', { dx, dy, angle: mouseAngle });
         }
-    }, 1000/30);
+    }
+    setInterval(sendMove, 1000/30);
 
     function updateHUD() {
-        if (!myId || !state.players?.[myId]) return;
+        if (!myId || !state.players[myId]) return;
         const p = state.players[myId];
-        document.getElementById('hp').style.width = p.hp + '%';
-        document.getElementById('hunger').style.width = (p.hunger || 100) + '%';
-        document.getElementById('stamina').style.width = (p.stamina || 100) + '%';
+        document.getElementById('healthFill').style.width = p.hp + '%';
+        document.getElementById('staminaFill').style.width = p.stamina + '%';
+        document.getElementById('hungerFill').style.width = p.hunger + '%';
+        document.getElementById('levelVal').innerText = p.level || 1;
     }
 
-    // ==================== РЕНДЕР ====================
+    function updateNight() {
+        const time = Date.now() / 1000;
+        const night = (Math.sin(time / 60) + 1) / 2;
+        document.getElementById('nightOverlay').style.opacity = night * 0.5;
+    }
+
+    function renderInv() {
+        if (!myId || !state.players[myId]) return;
+        const inv = state.players[myId].inventory;
+        const grid = document.getElementById('invGrid');
+        grid.innerHTML = '';
+        const icons = {
+            wood: '🪵', stone: '🪨', berry: '🫐', meat: '🥩', wall: '🧱',
+            campfire: '🔥', wood_sword: '🗡️', pickaxe: '⛏️', medkit: '💊'
+        };
+        for (let i = 0; i < 20; i++) {
+            const item = inv[i];
+            const div = document.createElement('div');
+            div.className = 'slot' + (selectedSlot === i ? ' selected' : '');
+            div.onclick = () => { selectedSlot = i; renderInv(); };
+            if (item) {
+                div.innerHTML = `${icons[item.id] || '📦'}<span class="count">${item.count}</span>`;
+            } else {
+                div.innerHTML = '⬜';
+            }
+            grid.appendChild(div);
+        }
+    }
+
+    function renderCraftMenu() {
+        if (!myId || !state.players[myId]) return;
+        const inv = state.players[myId].inventory;
+        const list = document.getElementById('craftList');
+        list.innerHTML = '';
+        const icons = { wood: '🪵', stone: '🪨', berry: '🫐', meat: '🥩' };
+        recipes.forEach((r, idx) => {
+            const div = document.createElement('div');
+            let canCraft = true;
+            const reqStr = r.req.map(req => {
+                let has = 0;
+                inv.forEach(it => { if (it && it.id === req.item) has += it.count; });
+                if (has < req.count) canCraft = false;
+                return `${icons[req.item]||''} ${req.item} ${has}/${req.count}`;
+            }).join(' | ');
+            div.className = 'recipe' + (canCraft ? '' : ' disabled');
+            div.innerHTML = `<b>${r.name}</b><div class="req">${reqStr}</div>`;
+            if (canCraft) div.onclick = () => socket.emit('craft', idx);
+            list.appendChild(div);
+        });
+    }
+
+    // ========== ОСНОВНОЙ РЕНДЕРИНГ (Красивый, с тенями и градиентами) ==========
+    function getBiomeColor(x, y) {
+        if (x < 50 && y < 50) return ['#f0d9a8', '#e2c88a']; // Пустыня
+        if (x > 150 && y > 150) return ['#d0e4f0', '#bed4e4']; // Снег
+        if (x > 70 && x < 130 && y > 70 && y < 130) return ['#2a6a1a', '#1e5212']; // Тёмный лес
+        return ['#5a9a3a', '#4a882a']; // Равнины
+    }
+
+    function drawResource(ctx, x, y, type) {
+        ctx.save();
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#00000066';
+        const cx = x + TILE/2, cy = y + TILE/2;
+        if (type === 'tree') {
+            ctx.fillStyle = '#6b4a2a';
+            ctx.fillRect(cx - 6, cy - 4, 12, 28);
+            ctx.fillStyle = '#3c9a2a';
+            ctx.beginPath(); ctx.arc(cx, cy - 10, 16, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#2a7a1a';
+            ctx.beginPath(); ctx.arc(cx - 4, cy - 16, 10, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'stone') {
+            ctx.fillStyle = '#888';
+            ctx.beginPath(); ctx.ellipse(cx, cy, 16, 14, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#aaa';
+            ctx.beginPath(); ctx.ellipse(cx - 3, cy - 2, 10, 8, 0, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'bush') {
+            ctx.fillStyle = '#2a8a1a';
+            ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff6666';
+            ctx.beginPath(); ctx.arc(cx - 4, cy - 2, 4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + 6, cy + 2, 3, 0, Math.PI*2); ctx.fill();
+        } else if (type === 'cactus') {
+            ctx.fillStyle = '#2a6a1a';
+            ctx.fillRect(cx - 6, cy - 14, 12, 32);
+            ctx.fillRect(cx - 14, cy - 8, 8, 8);
+            ctx.fillRect(cx + 6, cy - 4, 8, 8);
+        } else if (type === 'snow_tree') {
+            ctx.fillStyle = '#8a7a6a';
+            ctx.fillRect(cx - 6, cy - 4, 12, 24);
+            ctx.fillStyle = '#cceeff';
+            ctx.beginPath(); ctx.arc(cx, cy - 12, 18, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#eef4ff';
+            ctx.beginPath(); ctx.arc(cx - 4, cy - 20, 12, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    function drawBuilding(ctx, x, y, type) {
+        ctx.save();
+        ctx.shadowBlur = 4;
+        if (type === 'wall') {
+            ctx.fillStyle = '#7a5a3a';
+            ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+            ctx.fillStyle = '#9a7a4a';
+            ctx.fillRect(x + 8, y + 8, TILE - 16, TILE - 16);
+            ctx.fillStyle = '#c9a05c';
+            ctx.fillRect(x + 14, y + 14, 8, 8);
+        } else if (type === 'campfire') {
+            ctx.fillStyle = '#aa4422';
+            ctx.beginPath(); ctx.arc(x + TILE/2, y + TILE/2, 12, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffaa33';
+            ctx.beginPath(); ctx.arc(x + TILE/2, y + TILE/2 - 3, 6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ff6600';
+            for (let i=0; i<3; i++) {
+                ctx.beginPath(); ctx.moveTo(x + TILE/2, y + TILE/2 - 8); ctx.lineTo(x + TILE/2-4, y + TILE/2 - 16); ctx.lineTo(x + TILE/2+4, y + TILE/2 - 16); ctx.fill();
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawMob(ctx, x, y, mob, animTime) {
+        ctx.save();
+        ctx.translate(x + TILE/2, y + TILE/2);
+        ctx.rotate(mob.angle || 0);
+        ctx.fillStyle = '#666';
+        ctx.beginPath(); ctx.ellipse(0, 0, 14, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#444';
+        ctx.beginPath(); ctx.moveTo(14, -4); ctx.lineTo(22, 0); ctx.lineTo(14, 4); ctx.fill();
+        ctx.fillStyle = mob.targetId ? '#ff4444' : '#ffcc44';
+        ctx.beginPath(); ctx.arc(12, -3, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(12, 3, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    function drawPlayer(ctx, x, y, pl, isMe, animTime) {
+        ctx.save();
+        ctx.translate(x + TILE/2, y + TILE/2);
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#00000066';
+        // Тень
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath(); ctx.ellipse(0, 12, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+        // Ноги
+        ctx.fillStyle = '#4a2a1a';
+        const legOffset = Math.sin(animTime) * 5;
+        ctx.fillRect(-6, 4, 5, 12 + legOffset);
+        ctx.fillRect(1, 4, 5, 12 - legOffset);
+        // Тело
+        ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
+        ctx.beginPath(); ctx.arc(0, -2, 12, 0, Math.PI*2); ctx.fill();
+        // Рука с оружием
+        ctx.save();
+        ctx.rotate(pl.angle);
+        ctx.fillStyle = isMe ? '#ffcc88' : '#e09a5a';
+        ctx.fillRect(8, -3, 8, 6);
+        if (pl.isAttacking) ctx.rotate(1.2);
+        if (pl.equip === 'wood_sword') {
+            ctx.fillStyle = '#aa8844';
+            ctx.fillRect(14, -2, 18, 4);
+            ctx.fillStyle = '#664422';
+            ctx.fillRect(12, -5, 5, 8);
+        } else if (pl.equip === 'pickaxe') {
+            ctx.fillStyle = '#888';
+            ctx.fillRect(14, -2, 16, 4);
+            ctx.fillRect(24, -6, 5, 12);
+        }
+        ctx.restore();
+        // Имя и ХП
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(pl.name, 0, -20);
+        ctx.fillStyle = '#330000';
+        ctx.fillRect(-18, -16, 36, 5);
+        ctx.fillStyle = '#00aa00';
+        ctx.fillRect(-18, -16, 36 * (pl.hp / 100), 5);
+        ctx.restore();
+    }
+
+    let lastFrame = 0;
     function draw() {
         requestAnimationFrame(draw);
-        if (!myId || !state.players?.[myId]) return;
-
+        if (!myId || !state.players[myId]) return;
         const p = state.players[myId];
-        camX += ((p.x * TILE - canvas.width/2) - camX) * 0.15;
-        camY += ((p.y * TILE - canvas.height/2) - camY) * 0.15;
+        const now = Date.now() / 1000;
+        const anim = now * 8;
+        
+        // Плавная камера
+        const targetCamX = p.x * TILE - canvas.width/2;
+        const targetCamY = p.y * TILE - canvas.height/2;
+        camX = camX * 0.9 + targetCamX * 0.1;
+        camY = camY * 0.9 + targetCamY * 0.1;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.translate(-camX, -camY);
 
-        // Земля + биомы
-        const startX = Math.max(0, Math.floor(camX/TILE)-2);
-        const startY = Math.max(0, Math.floor(camY/TILE)-2);
-        const endX = Math.min(200, Math.ceil((camX+canvas.width)/TILE)+2);
-        const endY = Math.min(200, Math.ceil((camY+canvas.height)/TILE)+2);
-
+        // Земля (только видимая область)
+        const startX = Math.max(0, Math.floor(camX / TILE) - 1);
+        const startY = Math.max(0, Math.floor(camY / TILE) - 1);
+        const endX = Math.min(worldW, Math.ceil((camX + canvas.width) / TILE) + 2);
+        const endY = Math.min(worldH, Math.ceil((camY + canvas.height) / TILE) + 2);
         for (let x = startX; x < endX; x++) {
             for (let y = startY; y < endY; y++) {
-                let color = '#2a5a1a';
-                if (x < 50 && y < 50) color = '#c9b38a';           // пустыня
-                else if (x > 150 && y > 150) color = '#d0e0f0';   // снег
-                else if (x > 65 && x < 135 && y > 65 && y < 135) color = '#1e3f1a'; // лес
-
-                ctx.fillStyle = (x+y)%2 === 0 ? color : '#234d17';
-                ctx.fillRect(x*TILE, y*TILE, TILE, TILE);
+                const colors = getBiomeColor(x, y);
+                ctx.fillStyle = (x + y) % 2 === 0 ? colors[0] : colors[1];
+                ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+                // Добавляем текстуру травы
+                if (Math.random() < 0.02) {
+                    ctx.fillStyle = '#aaffaa';
+                    ctx.fillRect(x * TILE + Math.random() * TILE, y * TILE + Math.random() * TILE, 2, 2);
+                }
             }
         }
 
-        // Ресурсы (простая версия)
-        (state.resources || []).forEach(r => {
-            const rx = r.x * TILE + TILE/2;
-            const ry = r.y * TILE + TILE/2;
-            if (r.type === 'tree') {
-                ctx.fillStyle = '#3a2a1a'; ctx.fillRect(rx-6, ry-8, 12, 28);
-                ctx.fillStyle = '#0a5a0a'; ctx.beginPath(); ctx.arc(rx, ry-18, 18, 0, Math.PI*2); ctx.fill();
-            } else if (r.type === 'stone') {
-                ctx.fillStyle = '#666'; ctx.beginPath(); ctx.arc(rx, ry, 18, 0, Math.PI*2); ctx.fill();
-            }
-        });
+        // Постройки
+        for (let b of state.buildings) {
+            if (b.x * TILE < camX - TILE || b.x * TILE > camX + canvas.width + TILE) continue;
+            drawBuilding(ctx, b.x * TILE, b.y * TILE, b.type);
+        }
+
+        // Ресурсы
+        for (let r of state.resources) {
+            if (r.x * TILE < camX - TILE || r.x * TILE > camX + canvas.width + TILE) continue;
+            drawResource(ctx, r.x * TILE, r.y * TILE, r.type);
+        }
+
+        // Мобы
+        for (let m of state.mobs) {
+            if (m.x * TILE < camX - TILE || m.x * TILE > camX + canvas.width + TILE) continue;
+            drawMob(ctx, m.x * TILE, m.y * TILE, m, anim);
+        }
 
         // Игроки
-        Object.values(state.players || {}).forEach(pl => {
-            const px = pl.x * TILE;
-            const py = pl.y * TILE;
-            const isMe = pl.id === myId;
+        for (let id in state.players) {
+            const pl = state.players[id];
+            const x = pl.x * TILE, y = pl.y * TILE;
+            if (x < camX - TILE || x > camX + canvas.width + TILE) continue;
+            drawPlayer(ctx, x, y, pl, id === myId, anim);
+        }
 
-            ctx.save();
-            ctx.translate(px, py);
-
-            // Тень
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.ellipse(0, 18, 14, 6, 0, 0, Math.PI*2); ctx.fill();
-
-            // Тело
-            ctx.fillStyle = isMe ? '#ffcc77' : '#cc9966';
-            ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
-
-            // Голова
-            ctx.fillStyle = '#ffdbac';
-            ctx.beginPath(); ctx.arc(0, -8, 9, 0, Math.PI*2); ctx.fill();
-
-            // Оружие
-            ctx.save();
-            ctx.rotate(pl.angle || 0);
-            ctx.fillStyle = '#555';
-            ctx.fillRect(12, -4, 20, 8);
-            ctx.restore();
-
-            // Имя
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 13px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(pl.name || 'Player', 0, -32);
-
-            ctx.restore();
-        });
-
+        // Частицы
+        for (let i=particles.length-1; i>=0; i--) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.2;
+            p.life -= 0.03;
+            if (p.life <= 0) { particles.splice(i,1); continue; }
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
+            ctx.fillRect(p.x - camX, p.y - camY, 4, 4);
+        }
+        ctx.globalAlpha = 1;
         ctx.restore();
-
-        // Ночь
-        const nightLevel = (Math.sin(Date.now()/70000) + 1) / 2 * 0.7;
-        document.getElementById('night').style.opacity = nightLevel;
     }
-
     draw();
 </script>
 </body>

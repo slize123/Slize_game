@@ -1,7 +1,7 @@
 {
   "name": "slize-final",
   "version": "3.0.0",
-  "description": "Slize | Полноценная 2D онлайн игра Dynast.io стиль",
+  "description": "Slize | Полноценная 2D онлайн игра",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
